@@ -382,9 +382,12 @@ button, input { font: inherit; }
 .file-table th,
 .file-table td {
   border-bottom: 1px solid var(--outline-soft);
-  padding: 10px 12px;
   text-align: left;
 }
+.track-table th,
+.track-table td { padding: 5px 10px; }
+.file-table th,
+.file-table td { padding: 10px 12px; }
 
 .track-table th,
 .file-table th {
@@ -395,7 +398,7 @@ button, input { font: inherit; }
   text-transform: uppercase;
 }
 
-.track-table tr,
+.track-table tr { height: 32px; }
 .file-table tr { height: 40px; }
 .track-table tbody tr:hover,
 .file-table tbody tr:hover,
@@ -412,9 +415,9 @@ button, input { font: inherit; }
 .mini-art {
   border: 1px solid var(--outline);
   border-radius: var(--radius-sm);
-  height: 34px;
+  height: 26px;
   object-fit: cover;
-  width: 34px;
+  width: 26px;
 }
 .mini-art {
   align-items: center;
@@ -423,7 +426,7 @@ button, input { font: inherit; }
   display: flex;
   justify-content: center;
 }
-.title-cell strong { display: block; font-size: 14px; font-weight: 500; }
+.title-cell strong { display: block; font-size: 13px; font-weight: 500; }
 .title-cell small {
   color: var(--muted);
   display: block;
@@ -450,7 +453,10 @@ button, input { font: inherit; }
   text-align: center;
   width: 18px;
 }
+.file-icon.folder { color: var(--primary); }
 .file-icon.audio { color: var(--secondary); }
+.file-icon.image { color: var(--tertiary, #ffb869); }
+.image-badge { border-color: rgba(255, 184, 105, 0.45); }
 .file-table .folder-row { color: var(--on-surface); }
 .file-table .file-row { color: var(--on-surface); }
 
@@ -648,3 +654,108 @@ button, input { font: inherit; }
 }
 .metadata-grid strong { color: var(--on-surface); font-weight: 500; text-transform: none; }
 .field-stack input[readonly] { color: var(--muted); }
+
+.delete-form { margin-top: 12px; }
+.danger-button {
+  background: rgba(255, 180, 171, 0.08);
+  border: 1px solid rgba(255, 180, 171, 0.35);
+  border-radius: var(--radius-sm);
+  color: var(--error);
+  cursor: pointer;
+  font-weight: 700;
+  min-height: 38px;
+  padding: 0 14px;
+  width: 100%;
+}
+.danger-button:hover { background: rgba(255, 180, 171, 0.18); }
+.danger-button.subtle {
+  font-size: 12px;
+  margin-top: 10px;
+  min-height: 30px;
+}
+.collection-card { display: flex; flex-direction: column; }
+.collection-link { color: inherit; display: block; min-width: 0; text-decoration: none; }
+.collection-art-wrap { margin-bottom: 12px; }
+
+.album-card { position: relative; }
+.card-main { color: inherit; display: block; text-decoration: none; }
+.row-actions { text-align: right; width: 44px; }
+.item-delete-form { align-items: center; display: inline-flex; justify-content: center; }
+.delete-icon-button {
+  align-items: center;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  color: var(--muted);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 13px;
+  height: 26px;
+  justify-content: center;
+  line-height: 1;
+  padding: 0;
+  width: 26px;
+}
+.delete-icon-button:hover {
+  background: rgba(255, 180, 171, 0.12);
+  border-color: rgba(255, 180, 171, 0.35);
+  color: var(--error);
+}
+/* Delete buttons are always available in list rows, but block/card views only reveal them on hover/focus. */
+.album-card .block-delete {
+  opacity: 0;
+  pointer-events: none;
+  position: absolute;
+  right: 8px;
+  top: 8px;
+  transition: opacity 140ms ease;
+  z-index: 4;
+}
+.album-card:hover .block-delete,
+.album-card:focus-within .block-delete {
+  opacity: 1;
+  pointer-events: auto;
+}
+.compact-table .title-cell { gap: 8px; }
+.compact-table .title-cell small { display: none; }
+.compact-table .format-badge.inline { padding: 3px 5px; }
+
+.album-summary {
+  border-top: 1px solid var(--outline-soft);
+  margin-top: var(--space-md);
+  min-height: 0;
+  overflow: auto;
+  padding-top: var(--space-md);
+}
+.album-summary h3 {
+  font-size: 13px;
+  letter-spacing: 0.05em;
+  margin: 0 0 4px;
+  text-transform: uppercase;
+}
+.album-track-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+}
+.album-track-list li {
+  align-items: center;
+  background: var(--surface-lowest);
+  border: 1px solid var(--outline-soft);
+  border-radius: var(--radius-sm);
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 28px minmax(0, 1fr);
+  padding: 8px;
+}
+.album-track-list strong,
+.album-track-list small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.album-track-list small { color: var(--muted); font-family: "JetBrains Mono", monospace; font-size: 10px; }

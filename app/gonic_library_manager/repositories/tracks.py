@@ -176,12 +176,31 @@ def list_albums(connection: sqlite3.Connection) -> list[sqlite3.Row]:
         SELECT COALESCE(album, 'Unknown Album') AS album,
                COALESCE(album_artist, artist, 'Unknown Artist') AS artist,
                COUNT(*) AS track_count,
-               MIN(id) AS first_track_id
+               MIN(id) AS first_track_id,
+               COALESCE(MIN(CASE WHEN has_cover = 1 THEN id END), MIN(id)) AS cover_track_id
         FROM tracks
         GROUP BY COALESCE(album, 'Unknown Album'), COALESCE(album_artist, artist, 'Unknown Artist')
         ORDER BY album COLLATE NOCASE
         """
     ).fetchall()
+
+
+def list_album_tracks_by_anchor(connection: sqlite3.Connection, track_id: int) -> list[Track]:
+    anchor = get_track(connection, track_id)
+    if not anchor:
+        return []
+    album = anchor.metadata.album or "Unknown Album"
+    artist = anchor.metadata.album_artist or anchor.metadata.artist or "Unknown Artist"
+    rows = connection.execute(
+        """
+        SELECT * FROM tracks
+        WHERE COALESCE(album, 'Unknown Album') = ?
+          AND COALESCE(album_artist, artist, 'Unknown Artist') = ?
+        ORDER BY COALESCE(track_number, 9999), filename
+        """,
+        (album, artist),
+    ).fetchall()
+    return [row_to_track(row) for row in rows]
 
 
 def list_artists(connection: sqlite3.Connection) -> list[sqlite3.Row]:
@@ -203,6 +222,23 @@ def list_recent_tracks(connection: sqlite3.Connection, limit: int = 100) -> list
         (limit,),
     ).fetchall()
     return [row_to_track(row) for row in rows]
+
+
+def delete_track_row(connection: sqlite3.Connection, track_id: int) -> None:
+    connection.execute("DELETE FROM tracks WHERE id = ?", (track_id,))
+    connection.commit()
+
+
+def delete_track_rows_by_paths(connection: sqlite3.Connection, paths: set[Path]) -> None:
+    for path in paths:
+        connection.execute("DELETE FROM tracks WHERE path = ?", (str(path),))
+    connection.commit()
+
+
+def delete_track_rows_by_ids(connection: sqlite3.Connection, track_ids: set[int]) -> None:
+    for track_id in track_ids:
+        connection.execute("DELETE FROM tracks WHERE id = ?", (track_id,))
+    connection.commit()
 
 
 def delete_missing_tracks(connection: sqlite3.Connection, existing_paths: set[Path]) -> int:

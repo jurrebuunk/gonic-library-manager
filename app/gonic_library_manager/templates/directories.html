@@ -36,6 +36,7 @@
         <th>Size</th>
         <th>Type</th>
         <th>Modified</th>
+        <th></th>
       </tr>
     </thead>
     <tbody>
@@ -49,9 +50,11 @@
         {% endif %}
             <td>
               {% if entry.kind == "Folder" %}
-                <span class="file-icon folder">▰</span>
+                <span class="file-icon folder" aria-hidden="true">📁</span>
+              {% elif entry.kind == "Image" %}
+                <span class="file-icon image" aria-hidden="true">▧</span>
               {% else %}
-                <span class="file-icon audio">♪</span>
+                <span class="file-icon audio" aria-hidden="true">♪</span>
               {% endif %}
               <span title="{{ entry.rel_path }}">{{ entry.name }}</span>
             </td>
@@ -59,17 +62,27 @@
             <td>
               {% if entry.kind == "Audio" %}
                 <span class="format-badge inline">{{ entry.extension|file_badge }}</span>
+              {% elif entry.kind == "Image" %}
+                <span class="format-badge inline image-badge">{{ entry.extension|file_badge }}</span>
               {% else %}
                 Folder
               {% endif %}
             </td>
             <td class="mono">{{ entry.modified|date }}</td>
+            <td class="row-actions">
+              {% if entry.kind == "Audio" and entry.track_id %}
+                <form class="item-delete-form" action="/tracks/{{ entry.track_id }}/delete" method="post" onsubmit="return confirm('Delete this song from disk? This cannot be undone.')">
+                  <input type="hidden" name="next" value="/directories?dir={{ current_dir }}&q={{ q }}">
+                  <button class="delete-icon-button" type="submit" title="Delete song" aria-label="Delete song">🗑</button>
+                </form>
+              {% endif %}
+            </td>
           </tr>
       {% else %}
         <tr>
           <td colspan="4">
             <div class="empty-state compact">
-              <h2>No audio files found</h2>
+              <h2>No files found</h2>
               <p>Add a gonic-style library under <code>{{ settings.music_library_path }}</code>.</p>
             </div>
           </td>

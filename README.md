@@ -34,10 +34,13 @@ Why this stack:
    - Grid view at `/?view=grid`
    - Selectable rows/cards with the right-side inspector updating from `selected_id`
    - Physical directory browser at `/directories`
-   - Filterable directory table matching the Sonic Ledger design
+   - Filterable nested directory table matching the Sonic Ledger design
+   - Folder/audio/image icons in the directory manager
    - Albums, artists, and recent navigation pages
+   - Album cards can use folder artwork like `cover.jpg`/`cover.png`
    - Editable tag inspector for common tags
    - Cover-art upload/replacement from the inspector
+   - Song deletion and album deletion
    - Health endpoint at `/healthz`
 
 Still intentionally not included yet: auth, async background jobs, and yt-dlp downloading.

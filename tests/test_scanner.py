@@ -62,6 +62,7 @@ class ScannerTest(unittest.TestCase):
             album_dir = settings.music_library_path / "Artist" / "Album"
             album_dir.mkdir(parents=True)
             (album_dir / "01 - One.flac").write_bytes(b"fake flac")
+            (album_dir / "cover.png").write_bytes(b"fake image")
 
             init_db(settings)
             connection = sqlite3.connect(settings.database_path)
@@ -83,8 +84,12 @@ class ScannerTest(unittest.TestCase):
                     settings=settings,
                     current_dir="Artist/Album",
                 )
-                self.assertEqual([entry.name for entry in album_entries], ["01 - One.flac"])
+                self.assertEqual(
+                    [entry.name for entry in album_entries],
+                    ["01 - One.flac", "cover.png"],
+                )
                 self.assertEqual(album_entries[0].track_id, 1)
+                self.assertEqual(album_entries[1].kind, "Image")
             finally:
                 connection.close()
 

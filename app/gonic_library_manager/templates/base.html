@@ -10,7 +10,7 @@
     <link rel="stylesheet" href="{{ url_for('static', path='styles.css') }}?v=sonic-ledger-3">
   </head>
   <body>
-    <div class="app-shell {% if selected_track %}has-inspector{% else %}inspector-closed{% endif %}">
+    <div class="app-shell {% if selected_track or selected_album %}has-inspector{% else %}inspector-closed{% endif %}">
       <aside class="sidebar" aria-label="Main navigation">
         <div class="brand-block">
           <div class="brand-mark">♪</div>
@@ -51,7 +51,53 @@
         {% block content %}{% endblock %}
       </main>
 
-      {% if selected_track %}
+      {% if selected_album %}
+      <aside class="inspector" aria-label="Album inspector">
+        <div class="inspector-header">
+          <div>
+            <h2>Album</h2>
+            <p>Folder Artwork & Files</p>
+          </div>
+          <a class="icon-button" href="{{ deselect_url or request.url.path }}" aria-label="Close inspector">×</a>
+        </div>
+
+        <section class="selected-track-card">
+          <img class="selected-art" src="/media/tracks/{{ selected_album.cover_track_id }}/cover?v={{ selected_album.track_count }}" alt="Album cover">
+          <div>
+            <h3>{{ selected_album.title }}</h3>
+            <p>{{ selected_album.artist }}</p>
+            <div class="chip-row">
+              <span class="chip">{{ selected_album.track_count }} tracks</span>
+              <span class="chip ghost">{{ selected_album.total_size|bytes }}</span>
+            </div>
+          </div>
+        </section>
+
+        <form class="cover-form" action="/albums/{{ selected_album.anchor_id }}/cover" method="post" enctype="multipart/form-data">
+          <label class="cover-upload">
+            <span>▧ Album Cover File</span>
+            <input type="file" name="cover" accept="image/jpeg,image/png" onchange="this.form.submit()">
+            <strong>Replace</strong>
+          </label>
+        </form>
+
+        <section class="album-summary">
+          <h3>Song files</h3>
+          <p class="metadata-text">{{ selected_album.directory }}</p>
+          <ol class="album-track-list">
+            {% for track in selected_album.tracks %}
+              <li>
+                <span class="mono">{{ track.metadata.track_number or loop.index }}</span>
+                <div>
+                  <strong>{{ track.metadata.title or track.filename }}</strong>
+                  <small>{{ track.filename }} · {{ track.size_bytes|bytes }}</small>
+                </div>
+              </li>
+            {% endfor %}
+          </ol>
+        </section>
+      </aside>
+      {% elif selected_track %}
       <aside class="inspector" aria-label="Tag inspector">
         <div class="inspector-header">
           <div>
@@ -62,11 +108,7 @@
         </div>
 
           <section class="selected-track-card">
-            {% if selected_track.metadata.has_cover %}
-              <img class="selected-art" src="/media/tracks/{{ selected_track.id }}/cover" alt="Cover art">
-            {% else %}
-              <div class="selected-art placeholder-art">♪</div>
-            {% endif %}
+            <img class="selected-art" src="/media/tracks/{{ selected_track.id }}/cover?v={{ selected_track.mtime }}" alt="Cover art">
             <div>
               <h3>{{ selected_track.metadata.title or selected_track.filename }}</h3>
               <p>{{ selected_track.metadata.artist or 'Unknown Artist' }}</p>
@@ -117,6 +159,7 @@
     </div>
     <script>
       document.addEventListener('click', (event) => {
+        if (event.target.closest('button, form, input, label, a')) return;
         const target = event.target.closest('[data-href]');
         if (target) window.location.href = target.dataset.href;
       });

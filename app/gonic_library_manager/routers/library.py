@@ -7,19 +7,11 @@ from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 
 from gonic_library_manager.core.config import get_settings
+from gonic_library_manager.dependencies import get_db, get_templates
 from gonic_library_manager.repositories.tracks import count_tracks, get_track, list_tracks
 from gonic_library_manager.services.scanner import scan_library
 
 router = APIRouter()
-
-
-def get_templates(request: Request) -> Jinja2Templates:
-    return request.app.state.templates
-
-
-def get_db(request: Request) -> sqlite3.Connection:
-    return request.app.state.db
-
 
 @router.get("/")
 def library_view(
@@ -42,6 +34,7 @@ def library_view(
             "active_page": "tracks",
             "tracks": tracks,
             "selected_track": selected_track,
+            "selected_album": None,
             "total_tracks": count_tracks(db),
             "q": q,
             "view": active_view,

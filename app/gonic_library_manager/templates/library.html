@@ -24,18 +24,20 @@
 {% if view == "grid" %}
   <section class="album-grid">
     {% for track in tracks %}
-      <a class="album-card {% if track.id == selected_id %}selected{% endif %}" href="/?q={{ q|urlencode }}&view=grid&selected_id={{ track.id }}">
-        <div class="album-art-wrap">
-          {% if track.metadata.has_cover %}
-            <img class="album-art" src="/media/tracks/{{ track.id }}/cover" alt="Cover art">
-          {% else %}
-            <div class="album-art placeholder-art">♪</div>
-          {% endif %}
-          <span class="format-badge">{{ track.extension|file_badge }}</span>
-        </div>
-        <h3 title="{{ track.metadata.title or track.filename }}">{{ track.metadata.title or track.filename }}</h3>
-        <p title="{{ track.metadata.artist or 'Unknown Artist' }}">{{ track.metadata.artist or 'Unknown Artist' }}</p>
-      </a>
+      <article class="album-card {% if track.id == selected_id %}selected{% endif %}">
+        <a class="card-main" href="/?q={{ q|urlencode }}&view=grid&selected_id={{ track.id }}">
+          <div class="album-art-wrap">
+            <img class="album-art" src="/media/tracks/{{ track.id }}/cover?v={{ track.mtime }}" alt="Cover art">
+            <span class="format-badge">{{ track.extension|file_badge }}</span>
+          </div>
+          <h3 title="{{ track.metadata.title or track.filename }}">{{ track.metadata.title or track.filename }}</h3>
+          <p title="{{ track.metadata.artist or 'Unknown Artist' }}">{{ track.metadata.artist or 'Unknown Artist' }}</p>
+        </a>
+        <form class="item-delete-form block-delete" action="/tracks/{{ track.id }}/delete" method="post" onsubmit="return confirm('Delete this song from disk? This cannot be undone.')">
+          <input type="hidden" name="next" value="/?q={{ q }}&view=grid">
+          <button class="delete-icon-button" type="submit" title="Delete song" aria-label="Delete song">🗑</button>
+        </form>
+      </article>
     {% else %}
       <div class="empty-state">
         <div class="placeholder-art large">♪</div>
@@ -46,7 +48,7 @@
   </section>
 {% else %}
   <section class="track-table-card">
-    <table class="track-table">
+    <table class="track-table compact-table">
       <thead>
         <tr>
           <th>#</th>
@@ -56,6 +58,7 @@
           <th>Year</th>
           <th>Type</th>
           <th>Size</th>
+          <th></th>
         </tr>
       </thead>
       <tbody>
@@ -64,11 +67,7 @@
             <td class="mono">{{ loop.index }}</td>
             <td>
               <div class="title-cell">
-                {% if track.metadata.has_cover %}
-                  <img src="/media/tracks/{{ track.id }}/cover" alt="Cover art">
-                {% else %}
-                  <span class="mini-art">♪</span>
-                {% endif %}
+                <img src="/media/tracks/{{ track.id }}/cover?v={{ track.mtime }}" alt="Cover art">
                 <div>
                   <strong>{{ track.metadata.title or track.filename }}</strong>
                   <small>{{ track.rel_path }}</small>
@@ -80,10 +79,16 @@
             <td class="mono">{{ track.metadata.date or '—' }}</td>
             <td><span class="format-badge inline">{{ track.extension|file_badge }}</span></td>
             <td class="mono">{{ track.size_bytes|bytes }}</td>
+            <td class="row-actions">
+              <form class="item-delete-form" action="/tracks/{{ track.id }}/delete" method="post" onsubmit="return confirm('Delete this song from disk? This cannot be undone.')">
+                <input type="hidden" name="next" value="/?q={{ q }}&view=list">
+                <button class="delete-icon-button" type="submit" title="Delete song" aria-label="Delete song">🗑</button>
+              </form>
+            </td>
           </tr>
         {% else %}
           <tr>
-            <td colspan="7">
+            <td colspan="8">
               <div class="empty-state compact">
                 <h2>No tracks indexed</h2>
                 <p>Add audio files to <code>{{ settings.music_library_path }}</code>, then scan.</p>

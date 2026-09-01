@@ -7,7 +7,7 @@ from fastapi.templating import Jinja2Templates
 
 from gonic_library_manager.core.config import ensure_runtime_dirs, get_settings
 from gonic_library_manager.core.templating import configure_templates
-from gonic_library_manager.db.connection import connect, init_db
+from gonic_library_manager.db.connection import init_db
 from gonic_library_manager.routers import collections, directories, library, media, system, tracks
 
 PACKAGE_DIR = Path(__file__).parent
@@ -18,11 +18,7 @@ async def lifespan(app: FastAPI):
     settings = get_settings()
     ensure_runtime_dirs(settings)
     init_db(settings)
-    app.state.db = connect(settings)
-    try:
-        yield
-    finally:
-        app.state.db.close()
+    yield
 
 
 def create_app() -> FastAPI:

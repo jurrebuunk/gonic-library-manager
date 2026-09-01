@@ -6,19 +6,11 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.templating import Jinja2Templates
 
 from gonic_library_manager.core.config import get_settings
+from gonic_library_manager.dependencies import get_db, get_templates
 from gonic_library_manager.repositories.tracks import get_track
 from gonic_library_manager.services.directory_entries import breadcrumbs_for, list_directory_entries
 
 router = APIRouter(prefix="/directories", tags=["directories"])
-
-
-def get_templates(request: Request) -> Jinja2Templates:
-    return request.app.state.templates
-
-
-def get_db(request: Request) -> sqlite3.Connection:
-    return request.app.state.db
-
 
 @router.get("")
 def directory_view(
@@ -48,6 +40,7 @@ def directory_view(
             "current_dir": dir,
             "q": q,
             "selected_track": selected_track,
+            "selected_album": None,
             "selected_id": selected_track.id if selected_track else None,
             "deselect_url": deselect_url,
         },

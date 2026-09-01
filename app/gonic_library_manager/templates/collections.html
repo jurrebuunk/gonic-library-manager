@@ -16,16 +16,30 @@
 
 <section class="album-grid collection-grid">
   {% for item in items %}
-    <a class="album-card" href="/?selected_id={{ item['first_track_id'] }}">
-      <div class="collection-art placeholder-art">{% if kind == 'albums' %}◎{% else %}♙{% endif %}</div>
+    <article class="album-card collection-card {% if selected_album_id and selected_album_id == item['first_track_id'] %}selected{% endif %}">
+      <a class="collection-link" href="{% if kind == 'albums' %}/albums?selected_album_id={{ item['first_track_id'] }}{% else %}/?selected_id={{ item['first_track_id'] }}{% endif %}">
+        {% if kind == 'albums' %}
+          <div class="album-art-wrap collection-art-wrap">
+            {% if item['cover_track_id'] %}
+              <img class="album-art" src="/media/tracks/{{ item['cover_track_id'] }}/cover?v={{ item['track_count'] }}" alt="Album cover">
+            {% else %}
+              <div class="collection-art placeholder-art">◎</div>
+            {% endif %}
+          </div>
+          <h3>{{ item['album'] }}</h3>
+          <p>{{ item['artist'] }} · {{ item['track_count'] }} tracks</p>
+        {% else %}
+          <div class="collection-art placeholder-art">♙</div>
+          <h3>{{ item['artist'] }}</h3>
+          <p>{{ item['track_count'] }} tracks</p>
+        {% endif %}
+      </a>
       {% if kind == 'albums' %}
-        <h3>{{ item['album'] }}</h3>
-        <p>{{ item['artist'] }} · {{ item['track_count'] }} tracks</p>
-      {% else %}
-        <h3>{{ item['artist'] }}</h3>
-        <p>{{ item['track_count'] }} tracks</p>
+        <form class="item-delete-form block-delete" action="/albums/{{ item['first_track_id'] }}/delete" method="post" onsubmit="return confirm('Delete this album folder/files from disk? This cannot be undone.')">
+          <button class="delete-icon-button" type="submit" title="Delete album" aria-label="Delete album">🗑</button>
+        </form>
       {% endif %}
-    </a>
+    </article>
   {% else %}
     <div class="empty-state">
       <div class="placeholder-art large">♪</div>

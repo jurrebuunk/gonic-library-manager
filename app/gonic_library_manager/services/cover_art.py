@@ -1,3 +1,4 @@
+import base64
 from pathlib import Path
 from typing import Any
 
@@ -29,19 +30,28 @@ def read_cover_art(path: Path) -> tuple[bytes, str] | None:
     except Exception:
         return _read_folder_cover(path)
 
-    flac_picture = _read_flac_picture(audio)
-    if flac_picture:
-        return flac_picture
-
-    mp3_picture = _read_mp3_picture(audio)
-    if mp3_picture:
-        return mp3_picture
-
-    mp4_picture = _read_mp4_picture(audio)
-    if mp4_picture:
-        return mp4_picture
+    for candidate in (
+        _read_flac_picture(audio),
+        _read_mp3_picture(audio),
+        _read_mp4_picture(audio),
+        _read_metadata_block_picture(audio),
+    ):
+        if candidate and _looks_like_browser_image(*candidate):
+            return candidate
 
     return _read_folder_cover(path)
+
+
+def _looks_like_browser_image(data: bytes, mime: str) -> bool:
+    if mime == "image/jpeg":
+        return data.startswith(b"\xff\xd8")
+    if mime == "image/png":
+        return data.startswith(b"\x89PNG\r\n\x1a\n")
+    if mime == "image/gif":
+        return data.startswith((b"GIF87a", b"GIF89a"))
+    if mime == "image/webp":
+        return data.startswith(b"RIFF") and data[8:12] == b"WEBP"
+    return True
 
 
 def _read_flac_picture(audio: Any) -> tuple[bytes, str] | None:
@@ -74,6 +84,28 @@ def _read_mp4_picture(audio: Any) -> tuple[bytes, str] | None:
     image_format = getattr(cover, "imageformat", None)
     mime = "image/png" if image_format == 14 else "image/jpeg"
     return bytes(cover), mime
+
+
+def write_album_folder_cover(track_paths: list[Path], image: bytes, mime: str) -> Path:
+    if not track_paths:
+        raise ValueError("Album has no tracks")
+
+    parent_dirs = {path.parent.resolve() for path in track_paths}
+    album_dir = (
+        next(iter(parent_dirs))
+        if len(parent_dirs) == 1
+        else track_paths[0].parent.resolve()
+    )
+
+    for cover_name in COVER_FILENAMES:
+        candidate = album_dir / cover_name
+        if candidate.exists() and candidate.is_file():
+            candidate.unlink()
+
+    extension = ".png" if mime == "image/png" else ".jpg"
+    target = album_dir / f"cover{extension}"
+    target.write_bytes(image)
+    return target
 
 
 def write_cover_art(path: Path, image: bytes, mime: str) -> None:
@@ -113,9 +145,27 @@ def write_cover_art(path: Path, image: bytes, mime: str) -> None:
     (path.parent / f"cover{extension}").write_bytes(image)
 
 
+def _read_metadata_block_picture(audio: Any) -> tuple[bytes, str] | None:
+    tags = getattr(audio, "tags", None)
+    if not tags or "metadata_block_picture" not in tags:
+        return None
+    try:
+        from mutagen.flac import Picture
+
+        value = tags["metadata_block_picture"]
+        encoded = value[0] if isinstance(value, list) else value
+        picture = Picture(base64.b64decode(str(encoded)))
+        return picture.data, picture.mime or "image/jpeg"
+    except Exception:
+        return None
+
+
 def _read_folder_cover(path: Path) -> tuple[bytes, str] | None:
     cover = find_folder_cover(path)
     if not cover:
         return None
     mime = "image/png" if cover.suffix.lower() == ".png" else "image/jpeg"
-    return cover.read_bytes(), mime
+    data = cover.read_bytes()
+    if not _looks_like_browser_image(data, mime):
+        return None
+    return data, mime

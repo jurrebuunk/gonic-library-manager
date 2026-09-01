@@ -6,10 +6,13 @@ from gonic_library_manager.models import TrackMetadata
 COVER_FILENAMES = (
     "cover.jpg",
     "cover.jpeg",
+    "cover.png",
     "folder.jpg",
     "folder.jpeg",
+    "folder.png",
     "front.jpg",
     "front.jpeg",
+    "front.png",
 )
 
 
