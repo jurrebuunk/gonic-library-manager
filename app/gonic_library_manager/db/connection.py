@@ -4,7 +4,6 @@ from contextlib import contextmanager
 
 from gonic_library_manager.core.config import Settings, ensure_runtime_dirs, get_settings
 
-
 SCHEMA_SQL = """
 CREATE TABLE IF NOT EXISTS tracks (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

@@ -3,7 +3,6 @@ from pathlib import Path
 
 from gonic_library_manager.models import Track, TrackMetadata
 
-
 UPSERT_TRACK_SQL = """
 INSERT INTO tracks (
     path, rel_path, filename, extension, title, artist, album, album_artist,
@@ -79,17 +78,43 @@ def upsert_track(connection: sqlite3.Connection, track: Track) -> None:
     )
 
 
-def list_tracks(connection: sqlite3.Connection, query: str | None = None, limit: int = 1000) -> list[Track]:
+def list_tracks(
+    connection: sqlite3.Connection,
+    query: str | None = None,
+    limit: int = 1000,
+) -> list[Track]:
     sql = "SELECT * FROM tracks"
     params: list[object] = []
     if query:
-        sql += " WHERE title LIKE ? OR artist LIKE ? OR album LIKE ? OR album_artist LIKE ? OR rel_path LIKE ?"
+        sql += (
+            " WHERE title LIKE ? OR artist LIKE ? OR album LIKE ? "
+            "OR album_artist LIKE ? OR rel_path LIKE ?"
+        )
         needle = f"%{query}%"
         params.extend([needle, needle, needle, needle, needle])
-    sql += " ORDER BY COALESCE(artist, ''), COALESCE(album, ''), COALESCE(track_number, 9999), filename LIMIT ?"
+    sql += (
+        " ORDER BY COALESCE(artist, ''), COALESCE(album, ''), "
+        "COALESCE(track_number, 9999), filename LIMIT ?"
+    )
     params.append(limit)
     rows = connection.execute(sql, params).fetchall()
     return [row_to_track(row) for row in rows]
+
+
+def get_track(connection: sqlite3.Connection, track_id: int) -> Track | None:
+    row = connection.execute("SELECT * FROM tracks WHERE id = ?", (track_id,)).fetchone()
+    return row_to_track(row) if row else None
+
+
+def first_track(connection: sqlite3.Connection) -> Track | None:
+    row = connection.execute(
+        """
+        SELECT * FROM tracks
+        ORDER BY COALESCE(artist, ''), COALESCE(album, ''), COALESCE(track_number, 9999), filename
+        LIMIT 1
+        """
+    ).fetchone()
+    return row_to_track(row) if row else None
 
 
 def count_tracks(connection: sqlite3.Connection) -> int:

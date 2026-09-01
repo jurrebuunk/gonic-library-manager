@@ -1,21 +1,114 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="dark">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ settings.app_name }}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/static/styles.css">
   </head>
   <body>
-    <header class="topbar">
-      <a class="brand" href="/">{{ settings.app_name }}</a>
-      <nav>
-        <a href="/">Library</a>
-        <a href="/directories">Directory</a>
-      </nav>
-    </header>
-    <main class="container">
-      {% block content %}{% endblock %}
-    </main>
+    <div class="app-shell">
+      <aside class="sidebar" aria-label="Main navigation">
+        <div class="brand-block">
+          <div class="brand-mark">♪</div>
+          <div>
+            <a class="brand-title" href="/">{{ settings.app_name }}</a>
+            <p class="brand-subtitle">Technical Metadata Editor</p>
+          </div>
+        </div>
+
+        <form class="scan-card" action="/scan" method="post">
+          <button type="submit" class="scan-button"><span>▦</span> Scan Library</button>
+        </form>
+
+        <nav class="side-nav">
+          <a class="nav-item {% if active_page == 'tracks' %}active{% endif %}" href="/">
+            <span class="nav-icon">▣</span> All Tracks
+          </a>
+          <a class="nav-item muted" href="/">
+            <span class="nav-icon">◎</span> Albums
+          </a>
+          <a class="nav-item muted" href="/">
+            <span class="nav-icon">♙</span> Artists
+          </a>
+          <a class="nav-item {% if active_page == 'folders' %}active{% endif %}" href="/directories">
+            <span class="nav-icon">▰</span> Folders
+          </a>
+          <a class="nav-item muted" href="/">
+            <span class="nav-icon">◴</span> Recent
+          </a>
+        </nav>
+
+        <div class="sidebar-footer">
+          <a class="nav-item muted" href="#"><span class="nav-icon">⚙</span> Settings</a>
+        </div>
+      </aside>
+
+      <main class="workspace">
+        {% block content %}{% endblock %}
+      </main>
+
+      <aside class="inspector" aria-label="Tag inspector">
+        <div class="inspector-header">
+          <div>
+            <h2>Tag Editor</h2>
+            <p>Metadata Inspector</p>
+          </div>
+          <button class="icon-button" type="button" aria-label="Edit disabled for now">✎</button>
+        </div>
+
+        {% if selected_track %}
+          <section class="selected-track-card">
+            {% if selected_track.metadata.has_cover %}
+              <img class="selected-art" src="/media/tracks/{{ selected_track.id }}/cover" alt="Cover art">
+            {% else %}
+              <div class="selected-art placeholder-art">♪</div>
+            {% endif %}
+            <div>
+              <h3>{{ selected_track.metadata.title or selected_track.filename }}</h3>
+              <p>{{ selected_track.metadata.artist or 'Unknown Artist' }}</p>
+              <div class="chip-row">
+                <span class="chip">{{ selected_track.extension|file_badge }}</span>
+                <span class="chip ghost">{{ selected_track.size_bytes|bytes }}</span>
+              </div>
+            </div>
+          </section>
+
+          <section class="field-stack">
+            <label><span>T</span> Title<input value="{{ selected_track.metadata.title or selected_track.filename }}" readonly></label>
+            <label><span>♙</span> Artist<input value="{{ selected_track.metadata.artist or '' }}" readonly></label>
+            <label><span>◎</span> Album<input value="{{ selected_track.metadata.album or '' }}" readonly></label>
+            <div class="field-grid">
+              <label><span>▣</span> Year<input value="{{ selected_track.metadata.date or '' }}" readonly></label>
+              <label><span>#</span> Track #<input value="{{ selected_track.metadata.track_number or '' }}" readonly></label>
+            </div>
+            <label><span>▱</span> Genre
+              <div class="readonly-pill-row">
+                {% if selected_track.metadata.genre %}
+                  <span class="pill">{{ selected_track.metadata.genre }}</span>
+                {% else %}
+                  <span class="muted-text">No genre set</span>
+                {% endif %}
+              </div>
+            </label>
+            <label><span>⌁</span> Path<input value="{{ selected_track.rel_path }}" readonly></label>
+          </section>
+        {% else %}
+          <section class="empty-inspector">
+            <div class="placeholder-art large">♪</div>
+            <h3>No track selected</h3>
+            <p>Scan your library to populate the metadata inspector.</p>
+          </section>
+        {% endif %}
+
+        <div class="inspector-actions">
+          <button class="secondary-button" type="button">Revert</button>
+          <button class="primary-button" type="button">Save Tags</button>
+        </div>
+      </aside>
+    </div>
   </body>
 </html>

@@ -35,7 +35,7 @@ def _csv_extensions(value: str) -> frozenset[str]:
 @lru_cache
 def get_settings() -> Settings:
     return Settings(
-        app_name=getenv("APP_NAME", "Gonic Library Manager"),
+        app_name=getenv("APP_NAME", "Sonic Ledger"),
         app_host=getenv("APP_HOST", "0.0.0.0"),
         app_port=int(getenv("APP_PORT", "8080")),
         music_library_path=Path(getenv("MUSIC_LIBRARY_PATH", "/music")).resolve(),

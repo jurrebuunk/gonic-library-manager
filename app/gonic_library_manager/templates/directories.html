@@ -1,38 +1,72 @@
 {% extends "base.html" %}
 
-{% macro render_node(node) %}
-<li>
-  <details open>
-    <summary>{{ node.name }} <small>{{ node.rel_path }}</small></summary>
-    {% if node.files %}
-      <ul class="files">
-        {% for file in node.files %}
-          <li>♪ <code>{{ file.rel_path }}</code></li>
-        {% endfor %}
-      </ul>
-    {% endif %}
-    {% if node.directories %}
-      <ul>
-        {% for child in node.directories %}
-          {{ render_node(child) }}
-        {% endfor %}
-      </ul>
-    {% endif %}
-  </details>
-</li>
+{% macro render_directory(node, depth=0) %}
+  {% if node.rel_path != "." %}
+    <tr class="folder-row">
+      <td style="padding-left: {{ 24 + (depth * 20) }}px"><span class="file-icon folder">▰</span> {{ node.name }}</td>
+      <td class="mono">--</td>
+      <td>Folder</td>
+      <td class="mono">{{ node.rel_path }}</td>
+    </tr>
+  {% endif %}
+  {% for file in node.files %}
+    <tr class="file-row {% if loop.first and depth == 0 %}selected{% endif %}">
+      <td style="padding-left: {{ 24 + ((depth + 1) * 20) }}px"><span class="file-icon audio">♪</span> {{ file.name }}</td>
+      <td class="mono">--</td>
+      <td><span class="format-badge inline">{{ file.name|file_badge }}</span></td>
+      <td class="mono">{{ file.rel_path }}</td>
+    </tr>
+  {% endfor %}
+  {% for child in node.directories %}
+    {{ render_directory(child, depth + 1) }}
+  {% endfor %}
 {% endmacro %}
 
 {% block content %}
-<section class="hero">
-  <div>
-    <h1>Directory view</h1>
-    <p>The physical folder layout exactly as gonic sees it.</p>
+<header class="content-topbar">
+  <div class="breadcrumb">
+    <a href="/directories">⌂ Music</a>
+    <span>›</span>
+    <strong>Library Root</strong>
   </div>
+  <form class="search-box directory-search" method="get" action="/directories">
+    <span>⌕</span>
+    <input type="search" placeholder="Filter files..." disabled>
+  </form>
+  <div class="toolbar-actions">
+    <a class="icon-button" href="/">▦</a>
+    <a class="icon-button active" href="/directories">☷</a>
+  </div>
+</header>
+
+<section class="directory-summary">
+  <span class="metadata-text">Physical gonic layout</span>
+  <span class="metadata-text"><code>{{ settings.music_library_path }}</code></span>
 </section>
 
-<section class="panel tree">
-  <ul>
-    {{ render_node(tree) }}
-  </ul>
+<section class="file-table-card">
+  <table class="file-table">
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Size</th>
+        <th>Type</th>
+        <th>Path</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{ render_directory(tree) }}
+      {% if not tree.directories and not tree.files %}
+        <tr>
+          <td colspan="4">
+            <div class="empty-state compact">
+              <h2>No audio files found</h2>
+              <p>Add a gonic-style library under <code>{{ settings.music_library_path }}</code>.</p>
+            </div>
+          </td>
+        </tr>
+      {% endif %}
+    </tbody>
+  </table>
 </section>
 {% endblock %}

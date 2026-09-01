@@ -1,48 +1,98 @@
 {% extends "base.html" %}
 {% block content %}
-<section class="hero">
+<header class="content-topbar">
   <div>
-    <h1>Library view</h1>
-    <p>{{ total_tracks }} indexed tracks from <code>{{ settings.music_library_path }}</code>.</p>
+    <h1>Library</h1>
+    <p>Indexed from <code>{{ settings.music_library_path }}</code></p>
   </div>
-  <form action="/scan" method="post">
-    <button type="submit">Scan library now</button>
+  <form class="search-box" method="get" action="/">
+    <input type="hidden" name="view" value="{{ view }}">
+    <span>⌕</span>
+    <input type="search" name="q" value="{{ q }}" placeholder="Search tracks, artists, albums...">
   </form>
+  <div class="toolbar-actions" aria-label="View controls">
+    <a class="icon-button" href="/?q={{ q }}&view=grid" aria-label="Grid view">▦</a>
+    <a class="icon-button" href="/?q={{ q }}&view=list" aria-label="List view">☷</a>
+  </div>
+</header>
+
+<section class="section-header">
+  <h2>All Tracks</h2>
+  <span class="metadata-text">Showing {{ tracks|length }} of {{ total_tracks }} items</span>
 </section>
 
-<section class="panel">
-  <form class="search" method="get" action="/">
-    <input type="search" name="q" value="{{ q }}" placeholder="Search title, artist, album or path">
-    <button type="submit">Search</button>
-  </form>
-
-  <div class="table-wrap">
-    <table>
+{% if view == "grid" %}
+  <section class="album-grid">
+    {% for track in tracks %}
+      <article class="album-card {% if loop.first %}selected{% endif %}">
+        <div class="album-art-wrap">
+          {% if track.metadata.has_cover %}
+            <img class="album-art" src="/media/tracks/{{ track.id }}/cover" alt="Cover art">
+          {% else %}
+            <div class="album-art placeholder-art">♪</div>
+          {% endif %}
+          <span class="format-badge">{{ track.extension|file_badge }}</span>
+        </div>
+        <h3 title="{{ track.metadata.title or track.filename }}">{{ track.metadata.title or track.filename }}</h3>
+        <p title="{{ track.metadata.artist or 'Unknown Artist' }}">{{ track.metadata.artist or 'Unknown Artist' }}</p>
+      </article>
+    {% else %}
+      <div class="empty-state">
+        <div class="placeholder-art large">♪</div>
+        <h2>No tracks indexed</h2>
+        <p>Add audio files to <code>{{ settings.music_library_path }}</code>, then scan.</p>
+      </div>
+    {% endfor %}
+  </section>
+{% else %}
+  <section class="track-table-card">
+    <table class="track-table">
       <thead>
         <tr>
+          <th>#</th>
           <th>Title</th>
           <th>Artist</th>
           <th>Album</th>
-          <th>#</th>
-          <th>File</th>
+          <th>Year</th>
+          <th>Type</th>
+          <th>Size</th>
         </tr>
       </thead>
       <tbody>
         {% for track in tracks %}
-          <tr>
-            <td>{{ track.metadata.title or track.filename }}</td>
-            <td>{{ track.metadata.artist or "—" }}</td>
-            <td>{{ track.metadata.album or "—" }}</td>
-            <td>{{ track.metadata.track_number or "" }}</td>
-            <td><code>{{ track.rel_path }}</code></td>
+          <tr class="{% if loop.first %}selected{% endif %}">
+            <td class="mono">{{ loop.index }}</td>
+            <td>
+              <div class="title-cell">
+                {% if track.metadata.has_cover %}
+                  <img src="/media/tracks/{{ track.id }}/cover" alt="Cover art">
+                {% else %}
+                  <span class="mini-art">♪</span>
+                {% endif %}
+                <div>
+                  <strong>{{ track.metadata.title or track.filename }}</strong>
+                  <small>{{ track.rel_path }}</small>
+                </div>
+              </div>
+            </td>
+            <td>{{ track.metadata.artist or 'Unknown Artist' }}</td>
+            <td>{{ track.metadata.album or '—' }}</td>
+            <td class="mono">{{ track.metadata.date or '—' }}</td>
+            <td><span class="format-badge inline">{{ track.extension|file_badge }}</span></td>
+            <td class="mono">{{ track.size_bytes|bytes }}</td>
           </tr>
         {% else %}
           <tr>
-            <td colspan="5">No tracks yet. Add files under <code>{{ settings.music_library_path }}</code> and scan.</td>
+            <td colspan="7">
+              <div class="empty-state compact">
+                <h2>No tracks indexed</h2>
+                <p>Add audio files to <code>{{ settings.music_library_path }}</code>, then scan.</p>
+              </div>
+            </td>
           </tr>
         {% endfor %}
       </tbody>
     </table>
-  </div>
-</section>
+  </section>
+{% endif %}
 {% endblock %}

@@ -3,7 +3,14 @@ from typing import Any
 
 from gonic_library_manager.models import TrackMetadata
 
-COVER_FILENAMES = ("cover.jpg", "cover.jpeg", "folder.jpg", "folder.jpeg", "front.jpg", "front.jpeg")
+COVER_FILENAMES = (
+    "cover.jpg",
+    "cover.jpeg",
+    "folder.jpg",
+    "folder.jpeg",
+    "front.jpg",
+    "front.jpeg",
+)
 
 
 def _first(values: Any) -> str | None:
