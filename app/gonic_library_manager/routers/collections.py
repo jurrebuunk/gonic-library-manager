@@ -6,7 +6,6 @@ from fastapi.templating import Jinja2Templates
 
 from gonic_library_manager.core.config import get_settings
 from gonic_library_manager.repositories.tracks import (
-    first_track,
     get_track,
     list_albums,
     list_artists,
@@ -38,7 +37,7 @@ def albums_view(
             "active_page": "albums",
             "page_title": "Albums",
             "items": list_albums(db),
-            "selected_track": first_track(db),
+            "selected_track": None,
             "kind": "albums",
         },
     )
@@ -58,7 +57,7 @@ def artists_view(
             "active_page": "artists",
             "page_title": "Artists",
             "items": list_artists(db),
-            "selected_track": first_track(db),
+            "selected_track": None,
             "kind": "artists",
         },
     )
@@ -80,6 +79,7 @@ def recent_view(
             "settings": get_settings(),
             "active_page": "recent",
             "tracks": tracks,
-            "selected_track": selected_track or (tracks[0] if tracks else first_track(db)),
+            "selected_track": selected_track,
+            "deselect_url": "/recent",
         },
     )

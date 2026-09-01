@@ -1,17 +1,13 @@
 import sqlite3
 from typing import Annotated
+from urllib.parse import urlencode
 
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 
 from gonic_library_manager.core.config import get_settings
-from gonic_library_manager.repositories.tracks import (
-    count_tracks,
-    first_track,
-    get_track,
-    list_tracks,
-)
+from gonic_library_manager.repositories.tracks import count_tracks, get_track, list_tracks
 from gonic_library_manager.services.scanner import scan_library
 
 router = APIRouter()
@@ -34,9 +30,10 @@ def library_view(
     view: str = "list",
     selected_id: int | None = None,
 ):
+    active_view = "grid" if view == "grid" else "list"
     tracks = list_tracks(db, q)
     selected_track = get_track(db, selected_id) if selected_id else None
-    selected_track = selected_track or (tracks[0] if tracks else first_track(db))
+    deselect_url = f"/?{urlencode({'q': q, 'view': active_view})}"
     return templates.TemplateResponse(
         request,
         "library.html",
@@ -47,8 +44,9 @@ def library_view(
             "selected_track": selected_track,
             "total_tracks": count_tracks(db),
             "q": q,
-            "view": "grid" if view == "grid" else "list",
+            "view": active_view,
             "selected_id": selected_track.id if selected_track else None,
+            "deselect_url": deselect_url,
         },
     )
 

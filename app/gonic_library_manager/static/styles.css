@@ -59,9 +59,12 @@ button, input { font: inherit; }
 
 .app-shell {
   display: grid;
-  grid-template-columns: var(--sidebar-width) minmax(0, 1fr) var(--inspector-width);
+  grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
   min-height: 100vh;
   background: var(--background);
+}
+.app-shell.has-inspector {
+  grid-template-columns: var(--sidebar-width) minmax(0, 1fr) var(--inspector-width);
 }
 
 .sidebar,

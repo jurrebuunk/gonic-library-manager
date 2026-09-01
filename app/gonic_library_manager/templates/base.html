@@ -7,10 +7,10 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', path='styles.css') }}?v=sonic-ledger-2">
+    <link rel="stylesheet" href="{{ url_for('static', path='styles.css') }}?v=sonic-ledger-3">
   </head>
   <body>
-    <div class="app-shell">
+    <div class="app-shell {% if selected_track %}has-inspector{% else %}inspector-closed{% endif %}">
       <aside class="sidebar" aria-label="Main navigation">
         <div class="brand-block">
           <div class="brand-mark">♪</div>
@@ -51,16 +51,16 @@
         {% block content %}{% endblock %}
       </main>
 
+      {% if selected_track %}
       <aside class="inspector" aria-label="Tag inspector">
         <div class="inspector-header">
           <div>
             <h2>Tag Editor</h2>
             <p>Metadata Inspector</p>
           </div>
-          <button class="icon-button" type="button" aria-label="Edit disabled for now">✎</button>
+          <a class="icon-button" href="{{ deselect_url or request.url.path }}" aria-label="Close inspector">×</a>
         </div>
 
-        {% if selected_track %}
           <section class="selected-track-card">
             {% if selected_track.metadata.has_cover %}
               <img class="selected-art" src="/media/tracks/{{ selected_track.id }}/cover" alt="Cover art">
@@ -112,14 +112,8 @@
             <button class="secondary-button" form="tag-form" type="reset">Revert</button>
             <button class="primary-button" form="tag-form" type="submit">Save Tags</button>
           </div>
-        {% else %}
-          <section class="empty-inspector">
-            <div class="placeholder-art large">♪</div>
-            <h3>No track selected</h3>
-            <p>Scan your library to populate the metadata inspector.</p>
-          </section>
-        {% endif %}
       </aside>
+      {% endif %}
     </div>
     <script>
       document.addEventListener('click', (event) => {

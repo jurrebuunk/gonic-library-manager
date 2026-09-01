@@ -6,6 +6,7 @@ from pathlib import Path
 from gonic_library_manager.core.config import Settings
 from gonic_library_manager.db.connection import init_db
 from gonic_library_manager.repositories.tracks import count_tracks, list_tracks
+from gonic_library_manager.services.directory_entries import list_directory_entries
 from gonic_library_manager.services.directory_tree import build_directory_tree
 from gonic_library_manager.services.scanner import iter_audio_files, scan_library
 
@@ -51,6 +52,39 @@ class ScannerTest(unittest.TestCase):
                 result = scan_library(connection, settings)
                 self.assertEqual(result.removed, 1)
                 self.assertEqual(count_tracks(connection), 1)
+            finally:
+                connection.close()
+
+    def test_nested_directory_entries_show_one_level_at_a_time(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            settings = self.make_settings(root)
+            album_dir = settings.music_library_path / "Artist" / "Album"
+            album_dir.mkdir(parents=True)
+            (album_dir / "01 - One.flac").write_bytes(b"fake flac")
+
+            init_db(settings)
+            connection = sqlite3.connect(settings.database_path)
+            connection.row_factory = sqlite3.Row
+            try:
+                scan_library(connection, settings)
+                root_entries = list_directory_entries(connection, settings=settings)
+                self.assertEqual([entry.name for entry in root_entries], ["Artist"])
+
+                artist_entries = list_directory_entries(
+                    connection,
+                    settings=settings,
+                    current_dir="Artist",
+                )
+                self.assertEqual([entry.name for entry in artist_entries], ["Album"])
+
+                album_entries = list_directory_entries(
+                    connection,
+                    settings=settings,
+                    current_dir="Artist/Album",
+                )
+                self.assertEqual([entry.name for entry in album_entries], ["01 - One.flac"])
+                self.assertEqual(album_entries[0].track_id, 1)
             finally:
                 connection.close()
 

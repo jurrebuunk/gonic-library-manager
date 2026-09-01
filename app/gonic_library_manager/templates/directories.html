@@ -3,11 +3,17 @@
 {% block content %}
 <header class="content-topbar directory-topbar">
   <div class="breadcrumb">
-    <a href="/directories">⌂ Music</a>
-    <span>›</span>
-    <strong>Library Root</strong>
+    {% for crumb in breadcrumbs %}
+      {% if not loop.first %}<span>›</span>{% endif %}
+      {% if loop.last %}
+        <strong>{{ crumb.name }}</strong>
+      {% else %}
+        <a href="/directories?dir={{ crumb.rel_path|urlencode }}">{% if loop.first %}⌂ {% endif %}{{ crumb.name }}</a>
+      {% endif %}
+    {% endfor %}
   </div>
   <form class="search-box directory-search" method="get" action="/directories">
+    <input type="hidden" name="dir" value="{{ current_dir }}">
     <span>⌕</span>
     <input type="search" name="q" value="{{ q }}" placeholder="Filter files...">
   </form>
@@ -35,11 +41,13 @@
     <tbody>
       {% for entry in entries %}
         {% if entry.kind == "Audio" and entry.track_id %}
-          <tr class="clickable-row file-row {% if entry.track_id == selected_id %}selected{% endif %}" data-href="/directories?q={{ q|urlencode }}&selected_id={{ entry.track_id }}">
+          <tr class="clickable-row file-row {% if entry.track_id == selected_id %}selected{% endif %}" data-href="/directories?dir={{ current_dir|urlencode }}&q={{ q|urlencode }}&selected_id={{ entry.track_id }}">
+        {% elif entry.kind == "Folder" %}
+          <tr class="clickable-row folder-row" data-href="/directories?dir={{ entry.rel_path|urlencode }}">
         {% else %}
           <tr class="folder-row">
         {% endif %}
-            <td style="padding-left: {{ 24 + (entry.depth * 20) }}px">
+            <td>
               {% if entry.kind == "Folder" %}
                 <span class="file-icon folder">▰</span>
               {% else %}
