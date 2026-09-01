@@ -1,0 +1,10 @@
+.env
+/data/
+/example-music/
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+.DS_Store

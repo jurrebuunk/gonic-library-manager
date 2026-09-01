@@ -1,0 +1,13 @@
+services:
+  app:
+    build: .
+    container_name: gonic-library-manager
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "8080:8080"
+    volumes:
+      # Change this to the same host folder your gonic container serves.
+      - ./example-music:/music
+      # App-owned SQLite index and future job/config data.
+      - ./data:/data

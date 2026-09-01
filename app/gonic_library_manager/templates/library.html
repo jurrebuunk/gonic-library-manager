@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="hero">
+  <div>
+    <h1>Library view</h1>
+    <p>{{ total_tracks }} indexed tracks from <code>{{ settings.music_library_path }}</code>.</p>
+  </div>
+  <form action="/scan" method="post">
+    <button type="submit">Scan library now</button>
+  </form>
+</section>
+
+<section class="panel">
+  <form class="search" method="get" action="/">
+    <input type="search" name="q" value="{{ q }}" placeholder="Search title, artist, album or path">
+    <button type="submit">Search</button>
+  </form>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Title</th>
+          <th>Artist</th>
+          <th>Album</th>
+          <th>#</th>
+          <th>File</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for track in tracks %}
+          <tr>
+            <td>{{ track.metadata.title or track.filename }}</td>
+            <td>{{ track.metadata.artist or "—" }}</td>
+            <td>{{ track.metadata.album or "—" }}</td>
+            <td>{{ track.metadata.track_number or "" }}</td>
+            <td><code>{{ track.rel_path }}</code></td>
+          </tr>
+        {% else %}
+          <tr>
+            <td colspan="5">No tracks yet. Add files under <code>{{ settings.music_library_path }}</code> and scan.</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}
