@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', path='styles.css') }}?v=sonic-ledger-1">
+    <link rel="stylesheet" href="{{ url_for('static', path='styles.css') }}?v=sonic-ledger-2">
   </head>
   <body>
     <div class="app-shell">
@@ -28,16 +28,16 @@
           <a class="nav-item {% if active_page == 'tracks' %}active{% endif %}" href="/">
             <span class="nav-icon">▣</span> All Tracks
           </a>
-          <a class="nav-item muted" href="/">
+          <a class="nav-item {% if active_page == 'albums' %}active{% endif %}" href="/albums">
             <span class="nav-icon">◎</span> Albums
           </a>
-          <a class="nav-item muted" href="/">
+          <a class="nav-item {% if active_page == 'artists' %}active{% endif %}" href="/artists">
             <span class="nav-icon">♙</span> Artists
           </a>
           <a class="nav-item {% if active_page == 'folders' %}active{% endif %}" href="/directories">
             <span class="nav-icon">▰</span> Folders
           </a>
-          <a class="nav-item muted" href="/">
+          <a class="nav-item {% if active_page == 'recent' %}active{% endif %}" href="/recent">
             <span class="nav-icon">◴</span> Recent
           </a>
         </nav>
@@ -77,25 +77,41 @@
             </div>
           </section>
 
-          <section class="field-stack">
-            <label><span>T</span> Title<input value="{{ selected_track.metadata.title or selected_track.filename }}" readonly></label>
-            <label><span>♙</span> Artist<input value="{{ selected_track.metadata.artist or '' }}" readonly></label>
-            <label><span>◎</span> Album<input value="{{ selected_track.metadata.album or '' }}" readonly></label>
-            <div class="field-grid">
-              <label><span>▣</span> Year<input value="{{ selected_track.metadata.date or '' }}" readonly></label>
-              <label><span>#</span> Track #<input value="{{ selected_track.metadata.track_number or '' }}" readonly></label>
-            </div>
-            <label><span>▱</span> Genre
-              <div class="readonly-pill-row">
-                {% if selected_track.metadata.genre %}
-                  <span class="pill">{{ selected_track.metadata.genre }}</span>
-                {% else %}
-                  <span class="muted-text">No genre set</span>
-                {% endif %}
-              </div>
+          <form id="cover-form" class="cover-form" action="/tracks/{{ selected_track.id }}/cover" method="post" enctype="multipart/form-data">
+            <input type="hidden" name="next" value="{{ request.url.path }}{% if request.url.query %}?{{ request.url.query }}{% endif %}">
+            <label class="cover-upload">
+              <span>▧ Cover Art</span>
+              <input type="file" name="cover" accept="image/jpeg,image/png" onchange="this.form.submit()">
+              <strong>Replace</strong>
             </label>
+          </form>
+
+          <form id="tag-form" class="field-stack" action="/tracks/{{ selected_track.id }}/tags" method="post">
+            <input type="hidden" name="next" value="{{ request.url.path }}{% if request.url.query %}?{{ request.url.query }}{% endif %}">
+            <label><span>T</span> Title<input name="title" value="{{ selected_track.metadata.title or selected_track.filename }}"></label>
+            <label><span>♙</span> Artist<input name="artist" value="{{ selected_track.metadata.artist or '' }}"></label>
+            <label><span>◎</span> Album<input name="album" value="{{ selected_track.metadata.album or '' }}"></label>
+            <label><span>◎</span> Album Artist<input name="album_artist" value="{{ selected_track.metadata.album_artist or '' }}"></label>
+            <div class="field-grid">
+              <label><span>▣</span> Year<input name="date" value="{{ selected_track.metadata.date or '' }}"></label>
+              <label><span>#</span> Track #<input name="track_number" type="number" value="{{ selected_track.metadata.track_number or '' }}"></label>
+            </div>
+            <div class="field-grid">
+              <label><span>#</span> Disc #<input name="disc_number" type="number" value="{{ selected_track.metadata.disc_number or '' }}"></label>
+              <label><span>◷</span> Duration<input value="{{ selected_track.metadata.duration_seconds|duration }}" readonly></label>
+            </div>
+            <label><span>▱</span> Genre<input name="genre" value="{{ selected_track.metadata.genre or '' }}" placeholder="Electronic, Ambient"></label>
+            <div class="metadata-grid">
+              <span>Bitrate <strong>{{ selected_track.metadata.bitrate or '—' }}</strong></span>
+              <span>Sample <strong>{% if selected_track.metadata.sample_rate %}{{ selected_track.metadata.sample_rate }} Hz{% else %}—{% endif %}</strong></span>
+              <span>Channels <strong>{{ selected_track.metadata.channels or '—' }}</strong></span>
+            </div>
             <label><span>⌁</span> Path<input value="{{ selected_track.rel_path }}" readonly></label>
-          </section>
+          </form>
+          <div class="inspector-actions">
+            <button class="secondary-button" form="tag-form" type="reset">Revert</button>
+            <button class="primary-button" form="tag-form" type="submit">Save Tags</button>
+          </div>
         {% else %}
           <section class="empty-inspector">
             <div class="placeholder-art large">♪</div>
@@ -103,12 +119,13 @@
             <p>Scan your library to populate the metadata inspector.</p>
           </section>
         {% endif %}
-
-        <div class="inspector-actions">
-          <button class="secondary-button" type="button">Revert</button>
-          <button class="primary-button" type="button">Save Tags</button>
-        </div>
       </aside>
     </div>
+    <script>
+      document.addEventListener('click', (event) => {
+        const target = event.target.closest('[data-href]');
+        if (target) window.location.href = target.dataset.href;
+      });
+    </script>
   </body>
 </html>

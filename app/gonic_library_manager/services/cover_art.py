@@ -76,6 +76,43 @@ def _read_mp4_picture(audio: Any) -> tuple[bytes, str] | None:
     return bytes(cover), mime
 
 
+def write_cover_art(path: Path, image: bytes, mime: str) -> None:
+    """Write cover art.
+
+    FLAC and MP3 get embedded artwork. Other formats fall back to album-folder
+    `cover.jpg`/`cover.png`, which gonic also understands well.
+    """
+
+    suffix = path.suffix.lower()
+    if suffix == ".flac":
+        from mutagen.flac import FLAC, Picture
+
+        audio = FLAC(path)
+        audio.clear_pictures()
+        picture = Picture()
+        picture.data = image
+        picture.mime = mime
+        picture.type = 3
+        audio.add_picture(picture)
+        audio.save()
+        return
+
+    if suffix == ".mp3":
+        from mutagen.id3 import APIC
+        from mutagen.mp3 import MP3
+
+        audio = MP3(path)
+        if audio.tags is None:
+            audio.add_tags()
+        audio.tags.delall("APIC")
+        audio.tags.add(APIC(encoding=3, mime=mime, type=3, desc="Cover", data=image))
+        audio.save()
+        return
+
+    extension = ".png" if mime == "image/png" else ".jpg"
+    (path.parent / f"cover{extension}").write_bytes(image)
+
+
 def _read_folder_cover(path: Path) -> tuple[bytes, str] | None:
     cover = find_folder_cover(path)
     if not cover:

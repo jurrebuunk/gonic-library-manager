@@ -1,3 +1,4 @@
+from datetime import datetime
 from pathlib import Path
 
 from fastapi.templating import Jinja2Templates
@@ -24,6 +25,12 @@ def format_duration(value: float | None) -> str:
     return f"{minutes}:{seconds:02d}"
 
 
+def format_timestamp(value: float | None) -> str:
+    if value is None:
+        return "—"
+    return datetime.fromtimestamp(value).strftime("%b %d, %Y")
+
+
 def file_badge(path_or_extension: str | Path) -> str:
     extension = str(path_or_extension)
     if "." in extension:
@@ -35,4 +42,5 @@ def configure_templates(templates: Jinja2Templates) -> Jinja2Templates:
     templates.env.filters["bytes"] = format_bytes
     templates.env.filters["duration"] = format_duration
     templates.env.filters["file_badge"] = file_badge
+    templates.env.filters["date"] = format_timestamp
     return templates

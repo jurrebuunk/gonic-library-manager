@@ -49,6 +49,18 @@ def build_track(path: Path, settings: Settings | None = None) -> Track:
     )
 
 
+def scan_file(
+    connection: sqlite3.Connection,
+    path: Path,
+    settings: Settings | None = None,
+) -> Track:
+    settings = settings or get_settings()
+    track = build_track(path, settings)
+    upsert_track(connection, track)
+    connection.commit()
+    return track
+
+
 def scan_library(connection: sqlite3.Connection, settings: Settings | None = None) -> ScanResult:
     settings = settings or get_settings()
     files = iter_audio_files(settings.music_library_path, settings)

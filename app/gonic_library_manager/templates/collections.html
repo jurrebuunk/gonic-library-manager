@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block content %}
+<header class="content-topbar">
+  <div>
+    <h1>{{ page_title }}</h1>
+    <p>Grouped from the current SQLite library index.</p>
+  </div>
+  <div class="search-box disabled-box"><span>⌕</span><input value="Grouping view" disabled></div>
+  <div class="toolbar-actions"><a class="icon-button active" href="/{{ kind }}">▦</a></div>
+</header>
+
+<section class="section-header">
+  <h2>{{ page_title }}</h2>
+  <span class="metadata-text">Showing {{ items|length }} items</span>
+</section>
+
+<section class="album-grid collection-grid">
+  {% for item in items %}
+    <a class="album-card" href="/?selected_id={{ item['first_track_id'] }}">
+      <div class="collection-art placeholder-art">{% if kind == 'albums' %}◎{% else %}♙{% endif %}</div>
+      {% if kind == 'albums' %}
+        <h3>{{ item['album'] }}</h3>
+        <p>{{ item['artist'] }} · {{ item['track_count'] }} tracks</p>
+      {% else %}
+        <h3>{{ item['artist'] }}</h3>
+        <p>{{ item['track_count'] }} tracks</p>
+      {% endif %}
+    </a>
+  {% else %}
+    <div class="empty-state">
+      <div class="placeholder-art large">♪</div>
+      <h2>No {{ page_title|lower }} yet</h2>
+      <p>Scan your library to populate this page.</p>
+    </div>
+  {% endfor %}
+</section>
+{% endblock %}

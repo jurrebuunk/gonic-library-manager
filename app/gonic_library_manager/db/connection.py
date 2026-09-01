@@ -20,6 +20,9 @@ CREATE TABLE IF NOT EXISTS tracks (
     track_number INTEGER,
     disc_number INTEGER,
     duration_seconds REAL,
+    bitrate INTEGER,
+    sample_rate INTEGER,
+    channels INTEGER,
     has_cover INTEGER NOT NULL DEFAULT 0,
     size_bytes INTEGER NOT NULL,
     mtime REAL NOT NULL,
@@ -30,6 +33,12 @@ CREATE INDEX IF NOT EXISTS idx_tracks_rel_path ON tracks(rel_path);
 CREATE INDEX IF NOT EXISTS idx_tracks_artist_album ON tracks(artist, album);
 CREATE INDEX IF NOT EXISTS idx_tracks_title ON tracks(title);
 """
+
+MIGRATIONS = (
+    "ALTER TABLE tracks ADD COLUMN bitrate INTEGER",
+    "ALTER TABLE tracks ADD COLUMN sample_rate INTEGER",
+    "ALTER TABLE tracks ADD COLUMN channels INTEGER",
+)
 
 
 def connect(settings: Settings | None = None) -> sqlite3.Connection:
@@ -45,6 +54,12 @@ def init_db(settings: Settings | None = None) -> None:
     connection = connect(settings)
     try:
         connection.executescript(SCHEMA_SQL)
+        for migration in MIGRATIONS:
+            try:
+                connection.execute(migration)
+            except sqlite3.OperationalError as exc:
+                if "duplicate column name" not in str(exc).lower():
+                    raise
         connection.commit()
     finally:
         connection.close()

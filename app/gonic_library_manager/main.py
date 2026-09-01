@@ -8,7 +8,7 @@ from fastapi.templating import Jinja2Templates
 from gonic_library_manager.core.config import ensure_runtime_dirs, get_settings
 from gonic_library_manager.core.templating import configure_templates
 from gonic_library_manager.db.connection import connect, init_db
-from gonic_library_manager.routers import directories, library, media, system
+from gonic_library_manager.routers import collections, directories, library, media, system, tracks
 
 PACKAGE_DIR = Path(__file__).parent
 
@@ -33,8 +33,10 @@ def create_app() -> FastAPI:
     )
     app.mount("/static", StaticFiles(directory=str(PACKAGE_DIR / "static")), name="static")
     app.include_router(library.router)
+    app.include_router(collections.router)
     app.include_router(directories.router)
     app.include_router(media.router)
+    app.include_router(tracks.router)
     app.include_router(system.router)
     return app
 

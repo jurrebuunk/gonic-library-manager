@@ -6,9 +6,9 @@ from gonic_library_manager.models import Track, TrackMetadata
 UPSERT_TRACK_SQL = """
 INSERT INTO tracks (
     path, rel_path, filename, extension, title, artist, album, album_artist,
-    genre, date, track_number, disc_number, duration_seconds, has_cover,
-    size_bytes, mtime, scanned_at
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+    genre, date, track_number, disc_number, duration_seconds, bitrate,
+    sample_rate, channels, has_cover, size_bytes, mtime, scanned_at
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
 ON CONFLICT(path) DO UPDATE SET
     rel_path = excluded.rel_path,
     filename = excluded.filename,
@@ -22,11 +22,18 @@ ON CONFLICT(path) DO UPDATE SET
     track_number = excluded.track_number,
     disc_number = excluded.disc_number,
     duration_seconds = excluded.duration_seconds,
+    bitrate = excluded.bitrate,
+    sample_rate = excluded.sample_rate,
+    channels = excluded.channels,
     has_cover = excluded.has_cover,
     size_bytes = excluded.size_bytes,
     mtime = excluded.mtime,
     scanned_at = CURRENT_TIMESTAMP
 """
+
+
+def _row_get(row: sqlite3.Row, key: str) -> object | None:
+    return row[key] if key in row.keys() else None
 
 
 def row_to_track(row: sqlite3.Row) -> Track:
@@ -48,6 +55,9 @@ def row_to_track(row: sqlite3.Row) -> Track:
             track_number=row["track_number"],
             disc_number=row["disc_number"],
             duration_seconds=row["duration_seconds"],
+            bitrate=_row_get(row, "bitrate"),
+            sample_rate=_row_get(row, "sample_rate"),
+            channels=_row_get(row, "channels"),
             has_cover=bool(row["has_cover"]),
         ),
     )
@@ -71,6 +81,9 @@ def upsert_track(connection: sqlite3.Connection, track: Track) -> None:
             metadata.track_number,
             metadata.disc_number,
             metadata.duration_seconds,
+            metadata.bitrate,
+            metadata.sample_rate,
+            metadata.channels,
             int(metadata.has_cover),
             track.size_bytes,
             track.mtime,
@@ -106,6 +119,11 @@ def get_track(connection: sqlite3.Connection, track_id: int) -> Track | None:
     return row_to_track(row) if row else None
 
 
+def get_track_by_rel_path(connection: sqlite3.Connection, rel_path: str) -> Track | None:
+    row = connection.execute("SELECT * FROM tracks WHERE rel_path = ?", (rel_path,)).fetchone()
+    return row_to_track(row) if row else None
+
+
 def first_track(connection: sqlite3.Connection) -> Track | None:
     row = connection.execute(
         """
@@ -117,9 +135,74 @@ def first_track(connection: sqlite3.Connection) -> Track | None:
     return row_to_track(row) if row else None
 
 
+def update_track_metadata(connection: sqlite3.Connection, track: Track) -> None:
+    metadata = track.metadata
+    connection.execute(
+        """
+        UPDATE tracks
+        SET title = ?, artist = ?, album = ?, album_artist = ?, genre = ?, date = ?,
+            track_number = ?, disc_number = ?, duration_seconds = ?, bitrate = ?,
+            sample_rate = ?, channels = ?, has_cover = ?, scanned_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+        """,
+        (
+            metadata.title,
+            metadata.artist,
+            metadata.album,
+            metadata.album_artist,
+            metadata.genre,
+            metadata.date,
+            metadata.track_number,
+            metadata.disc_number,
+            metadata.duration_seconds,
+            metadata.bitrate,
+            metadata.sample_rate,
+            metadata.channels,
+            int(metadata.has_cover),
+            track.id,
+        ),
+    )
+    connection.commit()
+
+
 def count_tracks(connection: sqlite3.Connection) -> int:
     row = connection.execute("SELECT COUNT(*) AS count FROM tracks").fetchone()
     return int(row["count"])
+
+
+def list_albums(connection: sqlite3.Connection) -> list[sqlite3.Row]:
+    return connection.execute(
+        """
+        SELECT COALESCE(album, 'Unknown Album') AS album,
+               COALESCE(album_artist, artist, 'Unknown Artist') AS artist,
+               COUNT(*) AS track_count,
+               MIN(id) AS first_track_id
+        FROM tracks
+        GROUP BY COALESCE(album, 'Unknown Album'), COALESCE(album_artist, artist, 'Unknown Artist')
+        ORDER BY album COLLATE NOCASE
+        """
+    ).fetchall()
+
+
+def list_artists(connection: sqlite3.Connection) -> list[sqlite3.Row]:
+    return connection.execute(
+        """
+        SELECT COALESCE(artist, 'Unknown Artist') AS artist,
+               COUNT(*) AS track_count,
+               MIN(id) AS first_track_id
+        FROM tracks
+        GROUP BY COALESCE(artist, 'Unknown Artist')
+        ORDER BY artist COLLATE NOCASE
+        """
+    ).fetchall()
+
+
+def list_recent_tracks(connection: sqlite3.Connection, limit: int = 100) -> list[Track]:
+    rows = connection.execute(
+        "SELECT * FROM tracks ORDER BY mtime DESC, scanned_at DESC LIMIT ?",
+        (limit,),
+    ).fetchall()
+    return [row_to_track(row) for row in rows]
 
 
 def delete_missing_tracks(connection: sqlite3.Connection, existing_paths: set[Path]) -> int:

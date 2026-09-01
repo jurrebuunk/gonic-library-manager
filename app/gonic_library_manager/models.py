@@ -13,6 +13,9 @@ class TrackMetadata:
     track_number: int | None = None
     disc_number: int | None = None
     duration_seconds: float | None = None
+    bitrate: int | None = None
+    sample_rate: int | None = None
+    channels: int | None = None
     has_cover: bool = False
 
 

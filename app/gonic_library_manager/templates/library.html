@@ -11,8 +11,8 @@
     <input type="search" name="q" value="{{ q }}" placeholder="Search tracks, artists, albums...">
   </form>
   <div class="toolbar-actions" aria-label="View controls">
-    <a class="icon-button" href="/?q={{ q }}&view=grid" aria-label="Grid view">▦</a>
-    <a class="icon-button" href="/?q={{ q }}&view=list" aria-label="List view">☷</a>
+    <a class="icon-button {% if view == 'grid' %}active{% endif %}" href="/?q={{ q|urlencode }}&view=grid{% if selected_id %}&selected_id={{ selected_id }}{% endif %}" aria-label="Grid view">▦</a>
+    <a class="icon-button {% if view == 'list' %}active{% endif %}" href="/?q={{ q|urlencode }}&view=list{% if selected_id %}&selected_id={{ selected_id }}{% endif %}" aria-label="List view">☷</a>
   </div>
 </header>
 
@@ -24,7 +24,7 @@
 {% if view == "grid" %}
   <section class="album-grid">
     {% for track in tracks %}
-      <article class="album-card {% if loop.first %}selected{% endif %}">
+      <a class="album-card {% if track.id == selected_id %}selected{% endif %}" href="/?q={{ q|urlencode }}&view=grid&selected_id={{ track.id }}">
         <div class="album-art-wrap">
           {% if track.metadata.has_cover %}
             <img class="album-art" src="/media/tracks/{{ track.id }}/cover" alt="Cover art">
@@ -35,7 +35,7 @@
         </div>
         <h3 title="{{ track.metadata.title or track.filename }}">{{ track.metadata.title or track.filename }}</h3>
         <p title="{{ track.metadata.artist or 'Unknown Artist' }}">{{ track.metadata.artist or 'Unknown Artist' }}</p>
-      </article>
+      </a>
     {% else %}
       <div class="empty-state">
         <div class="placeholder-art large">♪</div>
@@ -60,7 +60,7 @@
       </thead>
       <tbody>
         {% for track in tracks %}
-          <tr class="{% if loop.first %}selected{% endif %}">
+          <tr class="clickable-row {% if track.id == selected_id %}selected{% endif %}" data-href="/?q={{ q|urlencode }}&view=list&selected_id={{ track.id }}">
             <td class="mono">{{ loop.index }}</td>
             <td>
               <div class="title-cell">

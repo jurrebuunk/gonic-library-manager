@@ -31,8 +31,16 @@ Why this stack:
 
 3. **Library view + directory view**
    - Searchable library table at `/`
+   - Grid view at `/?view=grid`
+   - Selectable rows/cards with the right-side inspector updating from `selected_id`
    - Physical directory browser at `/directories`
+   - Filterable directory table matching the Sonic Ledger design
+   - Albums, artists, and recent navigation pages
+   - Editable tag inspector for common tags
+   - Cover-art upload/replacement from the inspector
    - Health endpoint at `/healthz`
+
+Still intentionally not included yet: auth, async background jobs, and yt-dlp downloading.
 
 ## Modular layout
 
@@ -48,7 +56,7 @@ app/gonic_library_manager/
   static/         CSS/assets
 ```
 
-Future additions like tag editing, cover editing, auth, and background jobs should each get their own service/router/repository modules.
+Future additions like auth, background jobs, and yt-dlp downloads should each get their own service/router/repository modules.
 
 ## Run with Docker
 

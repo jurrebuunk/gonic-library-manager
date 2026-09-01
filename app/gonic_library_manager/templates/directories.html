@@ -1,29 +1,7 @@
 {% extends "base.html" %}
 
-{% macro render_directory(node, depth=0) %}
-  {% if node.rel_path != "." %}
-    <tr class="folder-row">
-      <td style="padding-left: {{ 24 + (depth * 20) }}px"><span class="file-icon folder">▰</span> {{ node.name }}</td>
-      <td class="mono">--</td>
-      <td>Folder</td>
-      <td class="mono">{{ node.rel_path }}</td>
-    </tr>
-  {% endif %}
-  {% for file in node.files %}
-    <tr class="file-row {% if loop.first and depth == 0 %}selected{% endif %}">
-      <td style="padding-left: {{ 24 + ((depth + 1) * 20) }}px"><span class="file-icon audio">♪</span> {{ file.name }}</td>
-      <td class="mono">--</td>
-      <td><span class="format-badge inline">{{ file.name|file_badge }}</span></td>
-      <td class="mono">{{ file.rel_path }}</td>
-    </tr>
-  {% endfor %}
-  {% for child in node.directories %}
-    {{ render_directory(child, depth + 1) }}
-  {% endfor %}
-{% endmacro %}
-
 {% block content %}
-<header class="content-topbar">
+<header class="content-topbar directory-topbar">
   <div class="breadcrumb">
     <a href="/directories">⌂ Music</a>
     <span>›</span>
@@ -31,16 +9,16 @@
   </div>
   <form class="search-box directory-search" method="get" action="/directories">
     <span>⌕</span>
-    <input type="search" placeholder="Filter files..." disabled>
+    <input type="search" name="q" value="{{ q }}" placeholder="Filter files...">
   </form>
   <div class="toolbar-actions">
-    <a class="icon-button" href="/">▦</a>
+    <a class="icon-button" href="/?view=grid">▦</a>
     <a class="icon-button active" href="/directories">☷</a>
   </div>
 </header>
 
 <section class="directory-summary">
-  <span class="metadata-text">Physical gonic layout</span>
+  <span class="metadata-text">{{ entries|length }} items</span>
   <span class="metadata-text"><code>{{ settings.music_library_path }}</code></span>
 </section>
 
@@ -51,12 +29,35 @@
         <th>Name</th>
         <th>Size</th>
         <th>Type</th>
-        <th>Path</th>
+        <th>Modified</th>
       </tr>
     </thead>
     <tbody>
-      {{ render_directory(tree) }}
-      {% if not tree.directories and not tree.files %}
+      {% for entry in entries %}
+        {% if entry.kind == "Audio" and entry.track_id %}
+          <tr class="clickable-row file-row {% if entry.track_id == selected_id %}selected{% endif %}" data-href="/directories?q={{ q|urlencode }}&selected_id={{ entry.track_id }}">
+        {% else %}
+          <tr class="folder-row">
+        {% endif %}
+            <td style="padding-left: {{ 24 + (entry.depth * 20) }}px">
+              {% if entry.kind == "Folder" %}
+                <span class="file-icon folder">▰</span>
+              {% else %}
+                <span class="file-icon audio">♪</span>
+              {% endif %}
+              <span title="{{ entry.rel_path }}">{{ entry.name }}</span>
+            </td>
+            <td class="mono">{{ entry.size_bytes|bytes }}</td>
+            <td>
+              {% if entry.kind == "Audio" %}
+                <span class="format-badge inline">{{ entry.extension|file_badge }}</span>
+              {% else %}
+                Folder
+              {% endif %}
+            </td>
+            <td class="mono">{{ entry.modified|date }}</td>
+          </tr>
+      {% else %}
         <tr>
           <td colspan="4">
             <div class="empty-state compact">
@@ -65,7 +66,7 @@
             </div>
           </td>
         </tr>
-      {% endif %}
+      {% endfor %}
     </tbody>
   </table>
 </section>

@@ -54,7 +54,8 @@ def read_metadata(path: Path) -> TrackMetadata:
         return TrackMetadata(has_cover=_folder_has_cover(path))
 
     tags = easy_audio.tags if easy_audio and easy_audio.tags else {}
-    duration = getattr(getattr(easy_audio, "info", None), "length", None)
+    info = getattr(raw_audio or easy_audio, "info", None)
+    duration = getattr(info, "length", None)
 
     return TrackMetadata(
         title=_first(tags.get("title")),
@@ -66,6 +67,9 @@ def read_metadata(path: Path) -> TrackMetadata:
         track_number=_number(_first(tags.get("tracknumber"))),
         disc_number=_number(_first(tags.get("discnumber"))),
         duration_seconds=duration,
+        bitrate=getattr(info, "bitrate", None),
+        sample_rate=getattr(info, "sample_rate", None),
+        channels=getattr(info, "channels", None),
         has_cover=_has_embedded_cover(raw_audio) or _folder_has_cover(path),
     )
 

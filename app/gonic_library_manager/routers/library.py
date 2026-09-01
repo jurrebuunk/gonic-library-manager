@@ -6,7 +6,12 @@ from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 
 from gonic_library_manager.core.config import get_settings
-from gonic_library_manager.repositories.tracks import count_tracks, first_track, list_tracks
+from gonic_library_manager.repositories.tracks import (
+    count_tracks,
+    first_track,
+    get_track,
+    list_tracks,
+)
 from gonic_library_manager.services.scanner import scan_library
 
 router = APIRouter()
@@ -27,9 +32,11 @@ def library_view(
     templates: Annotated[Jinja2Templates, Depends(get_templates)],
     q: str = "",
     view: str = "list",
+    selected_id: int | None = None,
 ):
     tracks = list_tracks(db, q)
-    selected_track = tracks[0] if tracks else first_track(db)
+    selected_track = get_track(db, selected_id) if selected_id else None
+    selected_track = selected_track or (tracks[0] if tracks else first_track(db))
     return templates.TemplateResponse(
         request,
         "library.html",
@@ -41,6 +48,7 @@ def library_view(
             "total_tracks": count_tracks(db),
             "q": q,
             "view": "grid" if view == "grid" else "list",
+            "selected_id": selected_track.id if selected_track else None,
         },
     )
 
