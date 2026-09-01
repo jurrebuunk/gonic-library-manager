@@ -75,7 +75,40 @@ If the repository/package is private, log in on the production host first:
 echo YOUR_GITHUB_PAT | docker login ghcr.io -u jurrebuunk --password-stdin
 ```
 
-## Local development
+## Local development with Nix
+
+Enter the dev shell:
+
+```bash
+nix develop
+```
+
+Run the app locally:
+
+```bash
+uvicorn gonic_library_manager.main:app --reload --app-dir app --host 127.0.0.1 --port 8080
+```
+
+Then open <http://127.0.0.1:8080>.
+
+The Nix dev shell defaults to:
+
+- `MUSIC_LIBRARY_PATH=$PWD/example-music`
+- `DATA_DIR=$PWD/data`
+
+You can also run without entering the shell:
+
+```bash
+nix develop -c uvicorn gonic_library_manager.main:app --reload --app-dir app --host 127.0.0.1 --port 8080
+```
+
+Run tests:
+
+```bash
+nix develop -c python -m unittest discover -s tests -v
+```
+
+## Local development with Python venv
 
 ```bash
 python -m venv .venv
