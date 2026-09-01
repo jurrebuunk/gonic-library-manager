@@ -61,6 +61,20 @@ Then open <http://localhost:8080>.
 
 Edit `docker-compose.yml` or `.env` so `/music` points at the same host folder gonic serves.
 
+## Pull the published image
+
+GitHub Actions publishes the image to GitHub Container Registry on every push to `main`:
+
+```bash
+docker pull ghcr.io/jurrebuunk/gonic-library-manager:latest
+```
+
+If the repository/package is private, log in on the production host first:
+
+```bash
+echo YOUR_GITHUB_PAT | docker login ghcr.io -u jurrebuunk --password-stdin
+```
+
 ## Local development
 
 ```bash
