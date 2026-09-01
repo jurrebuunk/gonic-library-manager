@@ -28,7 +28,7 @@ def delete_album_files(tracks: list[Track], settings: Settings | None = None) ->
     paths = {ensure_inside_library(track.path, settings) for track in tracks}
     parent_dirs = {path.parent for path in paths}
 
-    # For normal gonic structure (Artist/Album/tracks + cover.jpg), remove the
+    # For normal gonic structure (Artist/Album/tracks + folder.jpg), remove the
     # album directory too so folder artwork disappears with the album. If tracks
     # from this metadata album are spread across folders, delete only the files.
     if len(parent_dirs) == 1:

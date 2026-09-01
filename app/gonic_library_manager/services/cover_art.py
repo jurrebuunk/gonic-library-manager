@@ -103,7 +103,7 @@ def write_album_folder_cover(track_paths: list[Path], image: bytes, mime: str) -
             candidate.unlink()
 
     extension = ".png" if mime == "image/png" else ".jpg"
-    target = album_dir / f"cover{extension}"
+    target = album_dir / f"folder{extension}"
     target.write_bytes(image)
     return target
 
@@ -112,7 +112,7 @@ def write_cover_art(path: Path, image: bytes, mime: str) -> None:
     """Write cover art.
 
     FLAC and MP3 get embedded artwork. Other formats fall back to album-folder
-    `cover.jpg`/`cover.png`, which gonic also understands well.
+    `folder.jpg`/`folder.png`, which gonic also understands well.
     """
 
     suffix = path.suffix.lower()

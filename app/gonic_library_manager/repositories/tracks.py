@@ -208,7 +208,9 @@ def list_artists(connection: sqlite3.Connection) -> list[sqlite3.Row]:
         """
         SELECT COALESCE(artist, 'Unknown Artist') AS artist,
                COUNT(*) AS track_count,
-               MIN(id) AS first_track_id
+               COUNT(DISTINCT COALESCE(album, 'Unknown Album')) AS album_count,
+               MIN(id) AS first_track_id,
+               COALESCE(MIN(CASE WHEN has_cover = 1 THEN id END), MIN(id)) AS cover_track_id
         FROM tracks
         GROUP BY COALESCE(artist, 'Unknown Artist')
         ORDER BY artist COLLATE NOCASE
@@ -216,10 +218,18 @@ def list_artists(connection: sqlite3.Connection) -> list[sqlite3.Row]:
     ).fetchall()
 
 
-def list_recent_tracks(connection: sqlite3.Connection, limit: int = 100) -> list[Track]:
+def list_artist_tracks_by_anchor(connection: sqlite3.Connection, track_id: int) -> list[Track]:
+    anchor = get_track(connection, track_id)
+    if not anchor:
+        return []
+    artist = anchor.metadata.artist or "Unknown Artist"
     rows = connection.execute(
-        "SELECT * FROM tracks ORDER BY mtime DESC, scanned_at DESC LIMIT ?",
-        (limit,),
+        """
+        SELECT * FROM tracks
+        WHERE COALESCE(artist, 'Unknown Artist') = ?
+        ORDER BY COALESCE(album, ''), COALESCE(track_number, 9999), filename
+        """,
+        (artist,),
     ).fetchall()
     return [row_to_track(row) for row in rows]
 

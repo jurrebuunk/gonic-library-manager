@@ -35,6 +35,7 @@ def library_view(
             "tracks": tracks,
             "selected_track": selected_track,
             "selected_album": None,
+            "selected_artist": None,
             "total_tracks": count_tracks(db),
             "q": q,
             "view": active_view,

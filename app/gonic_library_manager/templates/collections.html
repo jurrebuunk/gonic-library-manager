@@ -16,8 +16,8 @@
 
 <section class="album-grid collection-grid">
   {% for item in items %}
-    <article class="album-card collection-card {% if selected_album_id and selected_album_id == item['first_track_id'] %}selected{% endif %}">
-      <a class="collection-link" href="{% if kind == 'albums' %}/albums?selected_album_id={{ item['first_track_id'] }}{% else %}/?selected_id={{ item['first_track_id'] }}{% endif %}">
+    <article class="album-card collection-card {% if (selected_album_id and selected_album_id == item['first_track_id']) or (selected_artist_id and selected_artist_id == item['first_track_id']) %}selected{% endif %}">
+      <a class="collection-link" href="{% if kind == 'albums' %}/albums?selected_album_id={{ item['first_track_id'] }}{% else %}/artists?selected_artist_id={{ item['first_track_id'] }}{% endif %}">
         {% if kind == 'albums' %}
           <div class="album-art-wrap collection-art-wrap">
             {% if item['cover_track_id'] %}
@@ -29,9 +29,15 @@
           <h3>{{ item['album'] }}</h3>
           <p>{{ item['artist'] }} · {{ item['track_count'] }} tracks</p>
         {% else %}
-          <div class="collection-art placeholder-art">♙</div>
+          <div class="album-art-wrap collection-art-wrap">
+            {% if item['cover_track_id'] %}
+              <img class="album-art" src="/media/tracks/{{ item['cover_track_id'] }}/cover?v={{ item['track_count'] }}" alt="Artist cover">
+            {% else %}
+              <div class="collection-art placeholder-art">♙</div>
+            {% endif %}
+          </div>
           <h3>{{ item['artist'] }}</h3>
-          <p>{{ item['track_count'] }} tracks</p>
+          <p>{{ item['album_count'] }} albums · {{ item['track_count'] }} tracks</p>
         {% endif %}
       </a>
       {% if kind == 'albums' %}

@@ -41,6 +41,7 @@ def directory_view(
             "q": q,
             "selected_track": selected_track,
             "selected_album": None,
+            "selected_artist": None,
             "selected_id": selected_track.id if selected_track else None,
             "deselect_url": deselect_url,
         },

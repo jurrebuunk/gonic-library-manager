@@ -36,8 +36,8 @@ Why this stack:
    - Physical directory browser at `/directories`
    - Filterable nested directory table matching the Sonic Ledger design
    - Folder/audio/image icons in the directory manager
-   - Albums, artists, and recent navigation pages
-   - Album cards can use folder artwork like `cover.jpg`/`cover.png`
+   - Albums and artists navigation pages, plus a placeholder Tools tab
+   - Album cards can use folder artwork like `folder.jpg`/`folder.png`
    - Editable tag inspector for common tags
    - Cover-art upload/replacement from the inspector
    - Song deletion and album deletion
@@ -135,5 +135,5 @@ uvicorn gonic_library_manager.main:app --reload --app-dir app
   Artist/
     Album/
       01 - Title.flac
-      cover.jpg
+      folder.jpg
 ```

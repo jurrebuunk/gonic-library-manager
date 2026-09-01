@@ -759,3 +759,12 @@ button, input { font: inherit; }
   white-space: nowrap;
 }
 .album-track-list small { color: var(--muted); font-family: "JetBrains Mono", monospace; font-size: 10px; }
+
+.artist-album-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 10px 0 18px;
+}
+
+.top-sync { margin-top: 0; }

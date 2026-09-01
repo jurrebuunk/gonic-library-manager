@@ -11,11 +11,10 @@ from gonic_library_manager.dependencies import get_db, get_templates
 from gonic_library_manager.models import Track
 from gonic_library_manager.repositories.tracks import (
     delete_track_rows_by_ids,
-    get_track,
     list_album_tracks_by_anchor,
     list_albums,
+    list_artist_tracks_by_anchor,
     list_artists,
-    list_recent_tracks,
 )
 from gonic_library_manager.services.cover_art import write_album_folder_cover
 from gonic_library_manager.services.file_manager import delete_album_files
@@ -45,6 +44,25 @@ def album_summary(anchor_id: int, tracks: list[Track]) -> dict[str, Any] | None:
     }
 
 
+def artist_summary(anchor_id: int, tracks: list[Track]) -> dict[str, Any] | None:
+    if not tracks:
+        return None
+    first = tracks[0]
+    artist = first.metadata.artist or "Unknown Artist"
+    cover_track = next((track for track in tracks if track.metadata.has_cover), first)
+    albums = sorted({track.metadata.album or "Unknown Album" for track in tracks})
+    return {
+        "anchor_id": anchor_id,
+        "name": artist,
+        "album_count": len(albums),
+        "track_count": len(tracks),
+        "total_size": sum(track.size_bytes for track in tracks),
+        "cover_track_id": cover_track.id,
+        "albums": albums,
+        "tracks": tracks,
+    }
+
+
 @router.get("/albums")
 def albums_view(
     request: Request,
@@ -69,7 +87,9 @@ def albums_view(
             "items": list_albums(db),
             "selected_track": None,
             "selected_album": selected_album,
+            "selected_artist": None,
             "selected_album_id": selected_album_id if selected_album else None,
+            "selected_artist_id": None,
             "deselect_url": "/albums",
             "kind": "albums",
         },
@@ -117,7 +137,15 @@ def artists_view(
     request: Request,
     db: Annotated[sqlite3.Connection, Depends(get_db)],
     templates: Annotated[Jinja2Templates, Depends(get_templates)],
+    selected_artist_id: int | None = None,
 ):
+    selected_artist = None
+    if selected_artist_id:
+        selected_artist = artist_summary(
+            selected_artist_id,
+            list_artist_tracks_by_anchor(db, selected_artist_id),
+        )
+
     return templates.TemplateResponse(
         request,
         "collections.html",
@@ -128,29 +156,10 @@ def artists_view(
             "items": list_artists(db),
             "selected_track": None,
             "selected_album": None,
+            "selected_artist": selected_artist,
+            "selected_album_id": None,
+            "selected_artist_id": selected_artist_id if selected_artist else None,
+            "deselect_url": "/artists",
             "kind": "artists",
-        },
-    )
-
-
-@router.get("/recent")
-def recent_view(
-    request: Request,
-    db: Annotated[sqlite3.Connection, Depends(get_db)],
-    templates: Annotated[Jinja2Templates, Depends(get_templates)],
-    selected_id: int | None = None,
-):
-    tracks = list_recent_tracks(db)
-    selected_track = get_track(db, selected_id) if selected_id else None
-    return templates.TemplateResponse(
-        request,
-        "recent.html",
-        {
-            "settings": get_settings(),
-            "active_page": "recent",
-            "tracks": tracks,
-            "selected_track": selected_track,
-            "selected_album": None,
-            "deselect_url": "/recent",
         },
     )

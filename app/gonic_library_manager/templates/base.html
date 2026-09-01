@@ -10,18 +10,10 @@
     <link rel="stylesheet" href="{{ url_for('static', path='styles.css') }}?v=sonic-ledger-3">
   </head>
   <body>
-    <div class="app-shell {% if selected_track or selected_album %}has-inspector{% else %}inspector-closed{% endif %}">
+    <div class="app-shell {% if selected_track or selected_album or selected_artist %}has-inspector{% else %}inspector-closed{% endif %}">
       <aside class="sidebar" aria-label="Main navigation">
-        <div class="brand-block">
-          <div class="brand-mark">♪</div>
-          <div>
-            <a class="brand-title" href="/">{{ settings.app_name }}</a>
-            <p class="brand-subtitle">Technical Metadata Editor</p>
-          </div>
-        </div>
-
-        <form class="scan-card" action="/scan" method="post">
-          <button type="submit" class="scan-button"><span>▦</span> Scan Library</button>
+        <form class="scan-card top-sync" action="/scan" method="post">
+          <button type="submit" class="scan-button"><span>↻</span> Sync Library</button>
         </form>
 
         <nav class="side-nav">
@@ -37,8 +29,8 @@
           <a class="nav-item {% if active_page == 'folders' %}active{% endif %}" href="/directories">
             <span class="nav-icon">▰</span> Folders
           </a>
-          <a class="nav-item {% if active_page == 'recent' %}active{% endif %}" href="/recent">
-            <span class="nav-icon">◴</span> Recent
+          <a class="nav-item muted" href="#" aria-disabled="true">
+            <span class="nav-icon">⌘</span> Tools
           </a>
         </nav>
 
@@ -51,7 +43,50 @@
         {% block content %}{% endblock %}
       </main>
 
-      {% if selected_album %}
+      {% if selected_artist %}
+      <aside class="inspector" aria-label="Artist inspector">
+        <div class="inspector-header">
+          <div>
+            <h2>Artist</h2>
+            <p>Library Summary</p>
+          </div>
+          <a class="icon-button" href="{{ deselect_url or request.url.path }}" aria-label="Close inspector">×</a>
+        </div>
+
+        <section class="selected-track-card">
+          <img class="selected-art" src="/media/tracks/{{ selected_artist.cover_track_id }}/cover?v={{ selected_artist.track_count }}" alt="Artist cover">
+          <div>
+            <h3>{{ selected_artist.name }}</h3>
+            <p>{{ selected_artist.album_count }} albums</p>
+            <div class="chip-row">
+              <span class="chip">{{ selected_artist.track_count }} tracks</span>
+              <span class="chip ghost">{{ selected_artist.total_size|bytes }}</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="album-summary">
+          <h3>Albums</h3>
+          <div class="artist-album-pills">
+            {% for album in selected_artist.albums %}
+              <span class="pill">{{ album }}</span>
+            {% endfor %}
+          </div>
+          <h3>Song files</h3>
+          <ol class="album-track-list">
+            {% for track in selected_artist.tracks %}
+              <li>
+                <span class="mono">{{ track.metadata.track_number or loop.index }}</span>
+                <div>
+                  <strong>{{ track.metadata.title or track.filename }}</strong>
+                  <small>{{ track.metadata.album or 'Unknown Album' }} · {{ track.filename }}</small>
+                </div>
+              </li>
+            {% endfor %}
+          </ol>
+        </section>
+      </aside>
+      {% elif selected_album %}
       <aside class="inspector" aria-label="Album inspector">
         <div class="inspector-header">
           <div>
