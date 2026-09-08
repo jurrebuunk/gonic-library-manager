@@ -1,6 +1,7 @@
 import asyncio
 import contextlib
 import os
+import shutil
 import signal
 from pathlib import Path
 
@@ -18,12 +19,25 @@ from gonic_library_manager.repositories.downloads import (
 )
 from gonic_library_manager.services.scanner import scan_library
 
-DEFAULT_SINGLE_TEMPLATE = "%(artist,uploader|Unknown Artist)s/%(album|Singles)s/%(title)s.%(ext)s"
-DEFAULT_PLAYLIST_TEMPLATE = (
-    "%(artist,playlist_uploader,uploader|Unknown Artist)s/"
-    "%(album,playlist_title|Downloaded Playlist)s/"
-    "%(playlist_index)02d - %(title)s.%(ext)s"
+# Gonic works best when files and embedded tags agree on this shape:
+#   /music/Album Artist/Album/01 - Title.ext
+# yt-dlp generally does not expose album tags for normal YouTube playlists, so
+# the playlist title becomes the album and the playlist/uploader becomes the
+# album artist. Singles are grouped under an explicit "Singles" album folder.
+DEFAULT_DOWNLOAD_SUBDIR = "downloads"
+DEFAULT_SINGLE_TEMPLATE = (
+    "%(artist,uploader|Unknown Artist)s/"
+    "(%(release_year,release_date>%Y,upload_date>%Y|0000)s) Singles/"
+    "01.01 %(title)s.%(ext)s"
 )
+DEFAULT_PLAYLIST_TEMPLATE = (
+    "%(playlist_uploader,uploader|Unknown Artist)s/"
+    "(%(release_year,release_date>%Y,upload_date>%Y|0000)s) "
+    "%(playlist_title|Downloaded Playlist)s/"
+    "%(playlist_index)02d.%(playlist_count)02d %(title)s.%(ext)s"
+)
+FOLDER_ART_NAMES = {"folder.jpg", "folder.jpeg", "folder.png"}
+IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
 ALLOWED_DOWNLOAD_TYPES = {"single", "playlist"}
 ALLOWED_AUDIO_FORMATS = {"best", "mp3", "opus", "m4a", "flac", "vorbis", "wav"}
 ALLOWED_AUDIO_QUALITIES = {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9"}
@@ -47,7 +61,7 @@ def normalize_download_options(options: DownloadTaskOptions) -> DownloadTaskOpti
         options.audio_quality if options.audio_quality in ALLOWED_AUDIO_QUALITIES else "0"
     )
     output_template = options.output_template.strip() or default_output_template(download_type)
-    output_subdir = options.output_subdir.strip() or "."
+    output_subdir = options.output_subdir.strip() or DEFAULT_DOWNLOAD_SUBDIR
     label = options.label.strip() if options.label else None
 
     return DownloadTaskOptions(
@@ -102,8 +116,32 @@ def build_ytdlp_command(options: DownloadTaskOptions, settings: Settings) -> lis
 
     if options.download_type == "single":
         command.append("--no-playlist")
+        if options.embed_metadata:
+            command.extend(
+                [
+                    "--parse-metadata",
+                    "%(artist,uploader|Unknown Artist)s:%(meta_artist)s",
+                    "--parse-metadata",
+                    "%(artist,uploader|Unknown Artist)s:%(meta_album_artist)s",
+                    "--parse-metadata",
+                    "%(album|Singles)s:%(meta_album)s",
+                ]
+            )
     else:
         command.append("--yes-playlist")
+        if options.embed_metadata:
+            command.extend(
+                [
+                    "--parse-metadata",
+                    "%(artist,uploader|Unknown Artist)s:%(meta_artist)s",
+                    "--parse-metadata",
+                    "%(playlist_uploader,uploader|Unknown Artist)s:%(meta_album_artist)s",
+                    "--parse-metadata",
+                    "%(playlist_title|Downloaded Playlist)s:%(meta_album)s",
+                    "--parse-metadata",
+                    "%(playlist_index|)s:%(meta_track)s",
+                ]
+            )
 
     if options.embed_metadata:
         command.append("--embed-metadata")
@@ -138,6 +176,38 @@ def _append_log(log_path: Path, line: str) -> None:
         handle.write(line)
         if not line.endswith("\n"):
             handle.write("\n")
+
+
+def ensure_gonic_folder_art(output_base: Path, settings: Settings) -> int:
+    """Create folder.jpg beside downloaded albums when yt-dlp wrote thumbnails.
+
+    Gonic recognizes album art from conventional files like folder.jpg. yt-dlp's
+    thumbnails are normally named after the track, so copy the first thumbnail in
+    every audio-containing folder to folder.jpg when that folder does not have one.
+    """
+
+    created = 0
+    for directory, _dirs, files in os.walk(output_base):
+        folder = Path(directory)
+        file_names = {name.lower() for name in files}
+        has_audio = any(Path(name).suffix.lower() in settings.library_extensions for name in files)
+        has_folder_art = bool(FOLDER_ART_NAMES & file_names)
+        if not has_audio or has_folder_art:
+            continue
+
+        image = next(
+            (
+                folder / name
+                for name in sorted(files)
+                if Path(name).suffix.lower() in IMAGE_EXTENSIONS
+            ),
+            None,
+        )
+        if image is None:
+            continue
+        shutil.copyfile(image, folder / "folder.jpg")
+        created += 1
+    return created
 
 
 def _scan_library(settings: Settings) -> None:
@@ -257,13 +327,14 @@ class DownloadTaskManager:
             )
 
             try:
+                output_base = resolve_output_base(self.settings, options.output_subdir)
                 command = build_ytdlp_command(options, self.settings)
                 with db_session(self.settings) as connection:
                     started = mark_download_task_running(connection, task_id, command)
                 if not started:
                     return
                 _append_log(task.log_path, "$ " + " ".join(command))
-                await self._spawn_and_wait(task_id, task.log_path, command)
+                await self._spawn_and_wait(task_id, task.log_path, command, output_base)
             except FileNotFoundError:
                 message = f"Could not find yt-dlp binary: {self.settings.ytdlp_binary}"
                 _append_log(task.log_path, message)
@@ -275,7 +346,13 @@ class DownloadTaskManager:
                 with db_session(self.settings) as connection:
                     finish_download_task(connection, task_id, "failed", error=message)
 
-    async def _spawn_and_wait(self, task_id: int, log_path: Path, command: list[str]) -> None:
+    async def _spawn_and_wait(
+        self,
+        task_id: int,
+        log_path: Path,
+        command: list[str],
+        output_base: Path,
+    ) -> None:
         process = await asyncio.create_subprocess_exec(
             *command,
             stdout=asyncio.subprocess.PIPE,
@@ -310,7 +387,14 @@ class DownloadTaskManager:
             return
 
         if return_code == 0:
-            _append_log(log_path, "[done] Download completed. Rescanning library index...")
+            _append_log(log_path, "[done] Download completed. Applying gonic folder art...")
+            folder_art_count = await asyncio.to_thread(
+                ensure_gonic_folder_art,
+                output_base,
+                self.settings,
+            )
+            _append_log(log_path, f"[done] Created {folder_art_count} folder.jpg file(s).")
+            _append_log(log_path, "[done] Rescanning library index...")
             async with self._scan_lock:
                 await asyncio.to_thread(_scan_library, self.settings)
             with db_session(self.settings) as connection:

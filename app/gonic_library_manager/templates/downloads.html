@@ -14,7 +14,7 @@
     <div class="form-card-header">
       <div>
         <h2>New download task</h2>
-        <p>Defaults create <code>Artist/Album/01 - Title.ext</code> style folders and embed metadata + cover art.</p>
+        <p>Defaults create <code>genre/Artist/(year) Album/01.10 Title.ext</code> style folders, embedded tags, and <code>folder.jpg</code>.</p>
       </div>
       <button class="primary-button" type="submit">Create task</button>
     </div>
@@ -57,26 +57,26 @@
     <label class="wide-field">
       <span>Output location under music root</span>
       <input name="output_subdir" value="{{ defaults.output_subdir }}" placeholder=".">
-      <small>Relative paths only. Example: <code>Incoming/YouTube</code>. The final path stays inside your gonic library.</small>
+      <small>Relative paths only. Use this as the top-level genre/category folder, for example <code>drum and bass</code> or <code>experimental</code>.</small>
     </label>
 
     <label class="wide-field">
       <span>Naming template</span>
       <input id="output-template" name="output_template" value="{{ defaults.output_template }}" data-playlist-template="{{ defaults.playlist_template }}" data-single-template="{{ defaults.single_template }}">
-      <small>yt-dlp output template. Playlist default: <code>{{ defaults.playlist_template }}</code></small>
+      <small>yt-dlp output template below the output location. Playlist default follows <code>Artist/(year) Album/01.10 Title.ext</code>.</small>
     </label>
 
     <div class="download-option-grid">
       <label><input type="checkbox" name="embed_metadata" checked> Embed tags/metadata</label>
       <label><input type="checkbox" name="embed_thumbnail" checked> Embed cover art</label>
-      <label><input type="checkbox" name="write_thumbnail"> Save cover image files</label>
+      <label><input type="checkbox" name="write_thumbnail" checked> Save cover image files / folder.jpg</label>
       <label><input type="checkbox" name="use_archive" checked> Skip previously downloaded URLs</label>
       <label><input type="checkbox" name="restrict_filenames"> Restrict filenames</label>
     </div>
 
     <div class="command-note">
       <strong>Default layout</strong>
-      <code>{{ settings.music_library_path }}/Artist/Album/01 - Title.mp3</code>
+      <code>{{ settings.music_library_path }}/downloads/Artist/(2026) Album/01.10 Title.mp3</code>
       <span>Completed downloads automatically trigger a library rescan.</span>
     </div>
   </form>

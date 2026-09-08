@@ -8,10 +8,12 @@ from gonic_library_manager.db.connection import init_db
 from gonic_library_manager.models import DownloadTaskOptions
 from gonic_library_manager.repositories.downloads import get_download_task, insert_download_task
 from gonic_library_manager.services.download_tasks import (
+    DEFAULT_DOWNLOAD_SUBDIR,
     DEFAULT_PLAYLIST_TEMPLATE,
     DEFAULT_SINGLE_TEMPLATE,
     build_ytdlp_command,
     default_output_template,
+    ensure_gonic_folder_art,
     resolve_output_base,
 )
 
@@ -57,6 +59,9 @@ class DownloadTasksTest(unittest.TestCase):
             self.assertIn("--embed-metadata", command)
             self.assertIn("--embed-thumbnail", command)
             self.assertIn(DEFAULT_SINGLE_TEMPLATE, command)
+            self.assertIn("01.01 %(title)s.%(ext)s", DEFAULT_SINGLE_TEMPLATE)
+            self.assertIn("%(album|Singles)s:%(meta_album)s", command)
+            self.assertIn("%(artist,uploader|Unknown Artist)s:%(meta_album_artist)s", command)
             self.assertEqual(
                 command[command.index("--paths") + 1],
                 str(settings.music_library_path),
@@ -68,9 +73,39 @@ class DownloadTasksTest(unittest.TestCase):
             destination = resolve_output_base(settings, "Incoming/YouTube")
             self.assertEqual(destination, settings.music_library_path / "Incoming" / "YouTube")
             self.assertEqual(default_output_template("playlist"), DEFAULT_PLAYLIST_TEMPLATE)
+            self.assertEqual(DEFAULT_DOWNLOAD_SUBDIR, "downloads")
+
+            command = build_ytdlp_command(
+                self.make_options(
+                    download_type="playlist",
+                    output_template=DEFAULT_PLAYLIST_TEMPLATE,
+                ),
+                settings,
+            )
+            self.assertIn("--yes-playlist", command)
+            self.assertIn("%(playlist_title|Downloaded Playlist)s:%(meta_album)s", command)
+            self.assertIn("%(playlist_index|)s:%(meta_track)s", command)
+            self.assertIn(
+                "%(playlist_index)02d.%(playlist_count)02d %(title)s.%(ext)s",
+                DEFAULT_PLAYLIST_TEMPLATE,
+            )
 
             with self.assertRaises(ValueError):
                 resolve_output_base(settings, "../outside")
+
+    def test_creates_gonic_folder_art_from_track_thumbnails(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            settings = self.make_settings(root)
+            album_dir = settings.music_library_path / "downloads" / "Artist" / "(2020) Album"
+            album_dir.mkdir(parents=True)
+            (album_dir / "01.02 One.mp3").write_bytes(b"audio")
+            (album_dir / "01.02 One.jpg").write_bytes(b"image")
+
+            created = ensure_gonic_folder_art(settings.music_library_path / "downloads", settings)
+
+            self.assertEqual(created, 1)
+            self.assertEqual((album_dir / "folder.jpg").read_bytes(), b"image")
 
     def test_download_task_repository_round_trip(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
