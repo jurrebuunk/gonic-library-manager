@@ -7,10 +7,10 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', path='styles.css') }}?v=sonic-ledger-3">
+    <link rel="stylesheet" href="{{ url_for('static', path='styles.css') }}?v=sonic-ledger-downloads-2">
   </head>
   <body>
-    <div class="app-shell {% if selected_track or selected_album or selected_artist %}has-inspector{% else %}inspector-closed{% endif %}">
+    <div class="app-shell {% if selected_track or selected_album or selected_artist or download_tasks_panel %}has-inspector{% else %}inspector-closed{% endif %}">
       <aside class="sidebar" aria-label="Main navigation">
         <form class="scan-card top-sync" action="/scan" method="post">
           <button type="submit" class="scan-button"><span>↻</span> Sync Library</button>
@@ -29,9 +29,17 @@
           <a class="nav-item {% if active_page == 'folders' %}active{% endif %}" href="/directories">
             <span class="nav-icon">▰</span> Folders
           </a>
-          <a class="nav-item muted" href="#" aria-disabled="true">
-            <span class="nav-icon">⌘</span> Tools
-          </a>
+          <details class="nav-group" {% if active_page == 'tools' %}open{% endif %}>
+            <summary class="nav-item {% if active_page == 'tools' %}active{% endif %}">
+              <span class="nav-icon">⌘</span> Tools
+              <span class="nav-caret">⌄</span>
+            </summary>
+            <div class="sub-nav">
+              <a class="sub-nav-item {% if active_tool == 'downloads' %}active{% endif %}" href="/tools/downloads">
+                <span class="nav-icon">⇣</span> Downloads
+              </a>
+            </div>
+          </details>
         </nav>
 
         <div class="sidebar-footer">
@@ -43,7 +51,44 @@
         {% block content %}{% endblock %}
       </main>
 
-      {% if selected_artist %}
+      {% if download_tasks_panel %}
+      <aside class="inspector download-inspector" aria-label="Download task monitor">
+        <div class="inspector-header">
+          <div>
+            <h2>Downloads</h2>
+            <p>{{ settings.download_concurrency }} concurrent yt-dlp slots</p>
+          </div>
+          <a class="icon-button" href="/tools/downloads" aria-label="Refresh downloads">↻</a>
+        </div>
+
+        <section id="download-task-list" class="download-task-list">
+          {% for task in download_task_items %}
+            <article class="download-task-card status-{{ task.status }}">
+              <div class="download-task-head">
+                <div>
+                  <strong>{{ task.label or task.url }}</strong>
+                  <small>#{{ task.id }} · {{ task.download_type }} · {{ task.audio_format }}</small>
+                </div>
+                <span class="task-status">{{ task.status }}</span>
+              </div>
+              <p class="metadata-text task-path">{{ task.output_subdir }}/{{ task.output_template }}</p>
+              {% if task.error %}<p class="task-error">{{ task.error }}</p>{% endif %}
+              {% if task.log_tail %}<pre class="task-log">{{ task.log_tail }}</pre>{% endif %}
+              {% if task.can_cancel %}
+                <form action="/tools/downloads/{{ task.id }}/cancel" method="post">
+                  <button class="danger-button subtle" type="submit">Cancel task</button>
+                </form>
+              {% endif %}
+            </article>
+          {% else %}
+            <div class="empty-inspector">
+              <h3>No downloads yet</h3>
+              <p>Create a task to see progress here.</p>
+            </div>
+          {% endfor %}
+        </section>
+      </aside>
+      {% elif selected_artist %}
       <aside class="inspector" aria-label="Artist inspector">
         <div class="inspector-header">
           <div>

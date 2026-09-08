@@ -35,7 +35,7 @@
         {
           default = pkgs.writeShellApplication {
             name = "gonic-library-manager";
-            runtimeInputs = [ pythonEnv ];
+            runtimeInputs = [ pythonEnv pkgs.ffmpeg pkgs.yt-dlp ];
             text = ''
               export MUSIC_LIBRARY_PATH="''${MUSIC_LIBRARY_PATH:-$PWD/example-music}"
               export DATA_DIR="''${DATA_DIR:-$PWD/data}"

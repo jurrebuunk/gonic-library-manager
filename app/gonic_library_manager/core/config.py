@@ -18,6 +18,8 @@ class Settings:
     music_library_path: Path
     data_dir: Path
     library_extensions: frozenset[str]
+    ytdlp_binary: str
+    download_concurrency: int
 
     @property
     def database_path(self) -> Path:
@@ -43,6 +45,8 @@ def get_settings() -> Settings:
         library_extensions=_csv_extensions(
             getenv("LIBRARY_EXTENSIONS", ".mp3,.flac,.ogg,.opus,.m4a,.aac,.wav")
         ),
+        ytdlp_binary=getenv("YTDLP_BINARY", "yt-dlp"),
+        download_concurrency=max(1, int(getenv("DOWNLOAD_CONCURRENCY", "3"))),
     )
 
 

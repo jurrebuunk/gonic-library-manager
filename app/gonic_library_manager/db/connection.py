@@ -32,6 +32,33 @@ CREATE TABLE IF NOT EXISTS tracks (
 CREATE INDEX IF NOT EXISTS idx_tracks_rel_path ON tracks(rel_path);
 CREATE INDEX IF NOT EXISTS idx_tracks_artist_album ON tracks(artist, album);
 CREATE INDEX IF NOT EXISTS idx_tracks_title ON tracks(title);
+
+CREATE TABLE IF NOT EXISTS download_tasks (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    url TEXT NOT NULL,
+    label TEXT,
+    download_type TEXT NOT NULL DEFAULT 'playlist',
+    status TEXT NOT NULL DEFAULT 'queued',
+    output_subdir TEXT NOT NULL DEFAULT '.',
+    output_template TEXT NOT NULL,
+    audio_format TEXT NOT NULL DEFAULT 'mp3',
+    audio_quality TEXT NOT NULL DEFAULT '0',
+    embed_metadata INTEGER NOT NULL DEFAULT 1,
+    embed_thumbnail INTEGER NOT NULL DEFAULT 1,
+    write_thumbnail INTEGER NOT NULL DEFAULT 0,
+    restrict_filenames INTEGER NOT NULL DEFAULT 0,
+    use_archive INTEGER NOT NULL DEFAULT 1,
+    command_json TEXT NOT NULL DEFAULT '[]',
+    log_path TEXT NOT NULL,
+    return_code INTEGER,
+    error TEXT,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    started_at TEXT,
+    finished_at TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_download_tasks_status ON download_tasks(status);
+CREATE INDEX IF NOT EXISTS idx_download_tasks_created_at ON download_tasks(created_at);
 """
 
 MIGRATIONS = (
@@ -47,6 +74,7 @@ def connect(settings: Settings | None = None) -> sqlite3.Connection:
     connection = sqlite3.connect(settings.database_path, check_same_thread=False)
     connection.row_factory = sqlite3.Row
     connection.execute("PRAGMA foreign_keys = ON")
+    connection.execute("PRAGMA busy_timeout = 5000")
     return connection
 
 

@@ -43,3 +43,44 @@ class DirectoryNode:
     rel_path: str
     directories: list["DirectoryNode"]
     files: list[DirectoryFile]
+
+
+@dataclass(frozen=True)
+class DownloadTaskOptions:
+    url: str
+    label: str | None
+    download_type: str
+    output_subdir: str
+    output_template: str
+    audio_format: str
+    audio_quality: str
+    embed_metadata: bool = True
+    embed_thumbnail: bool = True
+    write_thumbnail: bool = False
+    restrict_filenames: bool = False
+    use_archive: bool = True
+
+
+@dataclass(frozen=True)
+class DownloadTask:
+    id: int
+    url: str
+    label: str | None
+    download_type: str
+    status: str
+    output_subdir: str
+    output_template: str
+    audio_format: str
+    audio_quality: str
+    embed_metadata: bool
+    embed_thumbnail: bool
+    write_thumbnail: bool
+    restrict_filenames: bool
+    use_archive: bool
+    command: list[str]
+    log_path: Path
+    return_code: int | None
+    error: str | None
+    created_at: str
+    started_at: str | None
+    finished_at: str | None

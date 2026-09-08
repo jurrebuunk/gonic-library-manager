@@ -41,9 +41,10 @@ Why this stack:
    - Editable tag inspector for common tags
    - Cover-art upload/replacement from the inspector
    - Song deletion and album deletion
+   - yt-dlp download tool at `/tools/downloads` with a cancellable background queue
    - Health endpoint at `/healthz`
 
-Still intentionally not included yet: auth, async background jobs, and yt-dlp downloading.
+Still intentionally not included yet: auth.
 
 ## Modular layout
 
@@ -59,7 +60,7 @@ app/gonic_library_manager/
   static/         CSS/assets
 ```
 
-Future additions like auth, background jobs, and yt-dlp downloads should each get their own service/router/repository modules.
+Future additions like auth should get their own service/router/repository modules.
 
 ## Run with Docker
 
@@ -119,6 +120,10 @@ Run tests:
 nix develop -c python -m unittest discover -s tests -v
 ```
 
+Open the download tool at <http://127.0.0.1:8080/tools/downloads>. It uses yt-dlp and ffmpeg
+from the dev shell, stores task logs under `DATA_DIR/download-logs`, and runs up to
+`DOWNLOAD_CONCURRENCY` downloads at the same time.
+
 ## Local development with Python venv
 
 ```bash
@@ -127,6 +132,9 @@ source .venv/bin/activate
 pip install -e .
 uvicorn gonic_library_manager.main:app --reload --app-dir app
 ```
+
+Install `ffmpeg` on the host when using the Python venv path; yt-dlp needs it for audio
+conversion, metadata embedding, and cover art embedding.
 
 ## Gonic-friendly structure to aim for
 

@@ -1,0 +1,181 @@
+{% extends "base.html" %}
+{% block content %}
+<header class="content-topbar tools-topbar">
+  <div>
+    <h1>Download Tools</h1>
+    <p>Schedule yt-dlp downloads straight into <code>{{ settings.music_library_path }}</code>.</p>
+  </div>
+  <div class="search-box disabled-box"><span>⇣</span><input value="yt-dlp background queue" disabled></div>
+  <div class="toolbar-actions"><a class="icon-button active" href="/tools/downloads">⌘</a></div>
+</header>
+
+<section class="download-layout">
+  <form class="download-form-card" action="/tools/downloads" method="post">
+    <div class="form-card-header">
+      <div>
+        <h2>New download task</h2>
+        <p>Defaults create <code>Artist/Album/01 - Title.ext</code> style folders and embed metadata + cover art.</p>
+      </div>
+      <button class="primary-button" type="submit">Create task</button>
+    </div>
+
+    <label class="wide-field">
+      <span>Video / playlist URL</span>
+      <textarea name="url" rows="3" placeholder="https://www.youtube.com/watch?v=..." required></textarea>
+    </label>
+
+    <div class="download-field-grid">
+      <label>
+        <span>Task label</span>
+        <input name="label" placeholder="Optional friendly name">
+      </label>
+      <label>
+        <span>Mode</span>
+        <select id="download-type" name="download_type">
+          <option value="playlist" selected>Playlist / album</option>
+          <option value="single">Single video</option>
+        </select>
+      </label>
+      <label>
+        <span>Audio format</span>
+        <select name="audio_format">
+          {% for format in audio_formats %}
+            <option value="{{ format }}" {% if format == defaults.audio_format %}selected{% endif %}>{{ format }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>
+        <span>Quality</span>
+        <select name="audio_quality">
+          {% for quality in audio_qualities %}
+            <option value="{{ quality }}" {% if quality == defaults.audio_quality %}selected{% endif %}>{{ quality }}{% if quality == '0' %} — best{% endif %}</option>
+          {% endfor %}
+        </select>
+      </label>
+    </div>
+
+    <label class="wide-field">
+      <span>Output location under music root</span>
+      <input name="output_subdir" value="{{ defaults.output_subdir }}" placeholder=".">
+      <small>Relative paths only. Example: <code>Incoming/YouTube</code>. The final path stays inside your gonic library.</small>
+    </label>
+
+    <label class="wide-field">
+      <span>Naming template</span>
+      <input id="output-template" name="output_template" value="{{ defaults.output_template }}" data-playlist-template="{{ defaults.playlist_template }}" data-single-template="{{ defaults.single_template }}">
+      <small>yt-dlp output template. Playlist default: <code>{{ defaults.playlist_template }}</code></small>
+    </label>
+
+    <div class="download-option-grid">
+      <label><input type="checkbox" name="embed_metadata" checked> Embed tags/metadata</label>
+      <label><input type="checkbox" name="embed_thumbnail" checked> Embed cover art</label>
+      <label><input type="checkbox" name="write_thumbnail"> Save cover image files</label>
+      <label><input type="checkbox" name="use_archive" checked> Skip previously downloaded URLs</label>
+      <label><input type="checkbox" name="restrict_filenames"> Restrict filenames</label>
+    </div>
+
+    <div class="command-note">
+      <strong>Default layout</strong>
+      <code>{{ settings.music_library_path }}/Artist/Album/01 - Title.mp3</code>
+      <span>Completed downloads automatically trigger a library rescan.</span>
+    </div>
+  </form>
+
+  <section class="download-history-card">
+    <div class="section-header inline-section-header">
+      <h2>Recent tasks</h2>
+      <span class="metadata-text">{{ download_tasks|length }} shown</span>
+    </div>
+    <table class="download-table">
+      <thead>
+        <tr>
+          <th>Task</th>
+          <th>Status</th>
+          <th>Mode</th>
+          <th>Format</th>
+          <th>Created</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="download-table-body">
+        {% for task in download_tasks %}
+          <tr>
+            <td><strong>{{ task.label or task.url }}</strong><small>{{ task.output_subdir }}/{{ task.output_template }}</small></td>
+            <td><span class="task-status">{{ task.status }}</span></td>
+            <td>{{ task.download_type }}</td>
+            <td class="mono">{{ task.audio_format }}</td>
+            <td class="mono">{{ task.created_at }}</td>
+            <td>
+              {% if task.status in ['queued', 'running'] %}
+                <form action="/tools/downloads/{{ task.id }}/cancel" method="post"><button class="delete-icon-button" title="Cancel" type="submit">×</button></form>
+              {% endif %}
+            </td>
+          </tr>
+        {% else %}
+          <tr><td colspan="6"><div class="empty-state compact">No download tasks yet.</div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+</section>
+
+<script>
+  const typeSelect = document.getElementById('download-type');
+  const templateInput = document.getElementById('output-template');
+  let templateTouched = false;
+  templateInput.addEventListener('input', () => { templateTouched = true; });
+  typeSelect.addEventListener('change', () => {
+    if (templateTouched) return;
+    templateInput.value = typeSelect.value === 'single'
+      ? templateInput.dataset.singleTemplate
+      : templateInput.dataset.playlistTemplate;
+  });
+
+  function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>'"]/g, char => ({'&':'&amp;', '<':'&lt;', '>':'&gt;', "'":'&#39;', '"':'&quot;'}[char]));
+  }
+
+  function taskCard(task) {
+    const cancel = task.can_cancel
+      ? `<form action="/tools/downloads/${task.id}/cancel" method="post"><button class="danger-button subtle" type="submit">Cancel task</button></form>`
+      : '';
+    const error = task.error ? `<p class="task-error">${escapeHtml(task.error)}</p>` : '';
+    const log = task.log_tail ? `<pre class="task-log">${escapeHtml(task.log_tail)}</pre>` : '';
+    return `<article class="download-task-card status-${escapeHtml(task.status)}">
+      <div class="download-task-head"><div><strong>${escapeHtml(task.label || task.url)}</strong><small>#${task.id} · ${escapeHtml(task.download_type)} · ${escapeHtml(task.audio_format)}</small></div><span class="task-status">${escapeHtml(task.status)}</span></div>
+      <p class="metadata-text task-path">${escapeHtml(task.output_subdir)}/${escapeHtml(task.output_template)}</p>
+      ${error}${log}${cancel}
+    </article>`;
+  }
+
+  function taskRow(task) {
+    const cancel = task.can_cancel
+      ? `<form action="/tools/downloads/${task.id}/cancel" method="post"><button class="delete-icon-button" title="Cancel" type="submit">×</button></form>`
+      : '';
+    return `<tr>
+      <td><strong>${escapeHtml(task.label || task.url)}</strong><small>${escapeHtml(task.output_subdir)}/${escapeHtml(task.output_template)}</small></td>
+      <td><span class="task-status">${escapeHtml(task.status)}</span></td>
+      <td>${escapeHtml(task.download_type)}</td>
+      <td class="mono">${escapeHtml(task.audio_format)}</td>
+      <td class="mono">${escapeHtml(task.created_at)}</td>
+      <td>${cancel}</td>
+    </tr>`;
+  }
+
+  async function refreshDownloads() {
+    const response = await fetch('/tools/downloads/tasks', {headers: {'Accept': 'application/json'}});
+    if (!response.ok) return;
+    const data = await response.json();
+    const panel = document.getElementById('download-task-list');
+    const table = document.getElementById('download-table-body');
+    if (panel) {
+      panel.innerHTML = data.tasks.length ? data.tasks.map(taskCard).join('') : '<div class="empty-inspector"><h3>No downloads yet</h3><p>Create a task to see progress here.</p></div>';
+    }
+    if (table) {
+      table.innerHTML = data.tasks.length ? data.tasks.map(taskRow).join('') : '<tr><td colspan="6"><div class="empty-state compact">No download tasks yet.</div></td></tr>';
+    }
+  }
+
+  setInterval(refreshDownloads, 2500);
+</script>
+{% endblock %}

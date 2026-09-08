@@ -20,6 +20,8 @@ class ScannerTest(unittest.TestCase):
             music_library_path=root / "music",
             data_dir=root / "data",
             library_extensions=frozenset({".flac", ".mp3"}),
+            ytdlp_binary="yt-dlp",
+            download_concurrency=2,
         )
 
     def test_scan_indexes_audio_files_and_removes_missing_tracks(self) -> None:
